@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/authz";
 import { calculatePayout } from "@/lib/risk-engine";
+import { checkPayoutEligibility } from "@/lib/payout-eligibility";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,41 @@ export async function GET() {
     orderBy: { requestedAt: "desc" },
   });
 
-  return NextResponse.json({ payouts });
+  // Eligibility for each of the trader's own accounts, so the Payout center
+  // can show exactly why a request is/isn't currently allowed without the
+  // frontend recomputing any business rule itself.
+  const accounts = await prisma.account.findMany({
+    where: { userId: session.user.id },
+    include: { template: true, phases: { orderBy: { createdAt: "desc" } }, payouts: true },
+  });
+
+  const eligibility = accounts.map((account) => {
+    const currentPhase = account.phases[0];
+    const hasOpenBreach = account.phases.some((p) => p.status === "FAILED");
+    return {
+      accountId: account.id,
+      ...checkPayoutEligibility({
+        account,
+        currentPhase: currentPhase
+          ? {
+              type: currentPhase.type,
+              status: currentPhase.status,
+              tradingDays: currentPhase.tradingDays,
+              minTradingDays: currentPhase.minTradingDays,
+            }
+          : undefined,
+        payouts: account.payouts,
+        template: {
+          minPayoutCents: account.template.minPayoutCents,
+          payoutCycleDays: account.template.payoutCycleDays,
+          profitSplitTraderPct: Number(account.template.profitSplitTraderPct),
+        },
+        hasOpenBreach,
+      }),
+    };
+  });
+
+  return NextResponse.json({ payouts, eligibility });
 }
 
 const requestSchema = z.object({ accountId: z.string().min(1) });
@@ -44,25 +79,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Account not found." }, { status: 404 });
   }
 
-  if (!account.isActive) {
-    return NextResponse.json({ error: "This account is not active." }, { status: 400 });
-  }
-
   const currentPhase = account.phases[0];
-  if (!currentPhase || currentPhase.type !== "FUNDED" || currentPhase.status !== "FUNDED") {
-    return NextResponse.json({ error: "Only funded accounts are eligible for a payout." }, { status: 400 });
-  }
+  const hasOpenBreach = account.phases.some((p) => p.status === "FAILED");
 
-  const hasOpenRequest = account.payouts.some((p) => p.status === "PENDING" || p.status === "APPROVED");
-  if (hasOpenRequest) {
-    return NextResponse.json({ error: "There is already an open payout request for this account." }, { status: 400 });
+  const eligibility = checkPayoutEligibility({
+    account,
+    currentPhase: currentPhase
+      ? {
+          type: currentPhase.type,
+          status: currentPhase.status,
+          tradingDays: currentPhase.tradingDays,
+          minTradingDays: currentPhase.minTradingDays,
+        }
+      : undefined,
+    payouts: account.payouts,
+    template: {
+      minPayoutCents: account.template.minPayoutCents,
+      payoutCycleDays: account.template.payoutCycleDays,
+      profitSplitTraderPct: Number(account.template.profitSplitTraderPct),
+    },
+    hasOpenBreach,
+  });
+
+  if (!eligibility.eligible) {
+    return NextResponse.json({ error: eligibility.reasons.join(" "), reasons: eligibility.reasons }, { status: 400 });
   }
 
   const calc = calculatePayout(account.startingBalanceCents, account.currentBalanceCents, Number(account.template.profitSplitTraderPct));
-
-  if (calc.traderShareCents <= 0) {
-    return NextResponse.json({ error: "No payable profit is available on this account yet." }, { status: 400 });
-  }
 
   const payout = await prisma.payout.create({
     data: {

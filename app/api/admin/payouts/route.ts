@@ -9,8 +9,19 @@ export async function GET() {
   const { error } = await requireAdmin();
   if (error) return NextResponse.json({ error }, { status: 403 });
 
+  // Full review context: trader, account, prior payouts, and risk events,
+  // so admin can review a request without hopping between screens.
   const payouts = await prisma.payout.findMany({
-    include: { account: { include: { user: { select: { email: true, name: true } } } } },
+    include: {
+      account: {
+        include: {
+          user: { select: { id: true, email: true, name: true } },
+          template: true,
+          payouts: { orderBy: { requestedAt: "desc" } },
+          riskEvents: { orderBy: { createdAt: "desc" }, take: 20 },
+        },
+      },
+    },
     orderBy: { requestedAt: "desc" },
   });
   return NextResponse.json({ payouts });
@@ -24,17 +35,54 @@ export async function POST(req: NextRequest) {
   const parsed = payoutActionSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const { payoutId, action, notes } = parsed.data;
-  const statusMap = { APPROVE: "APPROVED", REJECT: "REJECTED", MARK_PAID: "PAID" } as const;
+  const { payoutId, action, notes, rejectionReason } = parsed.data;
+  const statusMap = {
+    APPROVE: "APPROVED",
+    REJECT: "REJECTED",
+    MARK_PAID: "PAID",
+    UNDER_REVIEW: "UNDER_REVIEW",
+    PROCESSING: "PROCESSING",
+    CANCEL: "CANCELLED",
+  } as const;
 
-  const payout = await prisma.payout.update({
-    where: { id: payoutId },
-    data: { status: statusMap[action], notes, processedAt: new Date() },
-  });
+  const existing = await prisma.payout.findUnique({ where: { id: payoutId }, include: { account: true } });
+  if (!existing) return NextResponse.json({ error: "Payout not found." }, { status: 404 });
 
-  await prisma.auditLog.create({
-    data: { actorId: session.user.id, action: `PAYOUT_${action}`, targetType: "Payout", targetId: payoutId },
-  });
+  const isTerminal = action === "REJECT" || action === "MARK_PAID" || action === "CANCEL";
+
+  const [payout] = await prisma.$transaction([
+    prisma.payout.update({
+      where: { id: payoutId },
+      data: {
+        status: statusMap[action],
+        notes,
+        rejectionReason: action === "REJECT" ? rejectionReason : existing.rejectionReason,
+        processedAt: isTerminal ? new Date() : existing.processedAt,
+      },
+    }),
+    prisma.auditLog.create({
+      data: {
+        actorId: session.user.id,
+        action: `PAYOUT_${action}`,
+        targetType: "Payout",
+        targetId: payoutId,
+        metadata: { rejectionReason, notes },
+      },
+    }),
+    prisma.notification.create({
+      data: {
+        userId: existing.account.userId,
+        type: action === "REJECT" ? "WARNING" : action === "MARK_PAID" ? "SUCCESS" : "INFO",
+        title: `Payout ${statusMap[action].toLowerCase().replace("_", " ")}`,
+        body:
+          action === "REJECT"
+            ? `Your payout request was rejected: ${rejectionReason}`
+            : action === "MARK_PAID"
+            ? `Your payout of $${(existing.traderShareCents / 100).toFixed(2)} has been paid.`
+            : `Your payout request status changed to ${statusMap[action]}.`,
+      },
+    }),
+  ]);
 
   return NextResponse.json({ payout });
 }

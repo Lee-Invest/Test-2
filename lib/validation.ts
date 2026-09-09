@@ -53,8 +53,14 @@ export const accountAdminActionSchema = z.object({
   phase: z.enum(["PHASE_1", "PHASE_2", "FUNDED"]).optional(),
 });
 
-export const payoutActionSchema = z.object({
-  payoutId: z.string().min(1),
-  action: z.enum(["APPROVE", "REJECT", "MARK_PAID"]),
-  notes: z.string().optional(),
-});
+export const payoutActionSchema = z
+  .object({
+    payoutId: z.string().min(1),
+    action: z.enum(["APPROVE", "REJECT", "MARK_PAID", "UNDER_REVIEW", "PROCESSING", "CANCEL"]),
+    notes: z.string().optional(),
+    rejectionReason: z.string().min(1).optional(),
+  })
+  .refine((v) => v.action !== "REJECT" || (v.rejectionReason && v.rejectionReason.trim().length > 0), {
+    message: "rejectionReason is required when rejecting a payout.",
+    path: ["rejectionReason"],
+  });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/authz";
 import { evaluateRisk, computeTradingStats, countTradingDays, calculatePayout } from "@/lib/risk-engine";
+import { checkAndAdvancePhase } from "@/lib/phase-advance";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,17 @@ export async function GET() {
   const { session, error } = await requireUser();
   if (error || !session) return NextResponse.json({ error }, { status: 401 });
 
+  // Evaluate breach / phase-passed conditions and persist any resulting
+  // transition BEFORE reading, so this response reflects up-to-date status.
+  // See lib/phase-advance.ts for why this runs on-read rather than on a cron.
+  const ids = await prisma.account.findMany({
+    where: { userId: session.user.id },
+    select: { id: true },
+  });
+  for (const { id } of ids) {
+    await checkAndAdvancePhase(id);
+  }
+
   const accounts = await prisma.account.findMany({
     where: { userId: session.user.id },
     include: {
@@ -19,6 +31,11 @@ export async function GET() {
       phases: { orderBy: { createdAt: "desc" } },
       trades: { orderBy: { openedAt: "desc" } },
     },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const latestRiskEvents = await prisma.riskEvent.findMany({
+    where: { accountId: { in: accounts.map((a) => a.id) } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -50,6 +67,7 @@ export async function GET() {
       : null;
 
     const stats = computeTradingStats(account.trades.map((t) => ({ pnlCents: t.pnlCents })));
+    const isFailed = currentPhase?.status === "FAILED";
 
     const isFunded = currentPhase?.type === "FUNDED" && currentPhase.status === "FUNDED";
     const payoutCalc = calculatePayout(
@@ -74,6 +92,10 @@ export async function GET() {
       isFunded,
       profitSplitTraderPct: Number(account.template.profitSplitTraderPct),
       availablePayoutCents: isFunded ? payoutCalc.traderShareCents : 0,
+      isFailed,
+      breachEvent: isFailed
+        ? latestRiskEvents.find((e) => e.accountId === account.id) ?? null
+        : null,
     };
   });
 

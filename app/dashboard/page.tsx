@@ -44,6 +44,8 @@ interface AccountView {
   isFunded: boolean;
   profitSplitTraderPct: number;
   availablePayoutCents: number;
+  isFailed: boolean;
+  breachEvent: { message: string; createdAt: string } | null;
 }
 
 interface Payout {
@@ -150,6 +152,16 @@ export default function DashboardPage() {
                   </div>
                   <PhaseTracker current={account.currentPhase?.type ?? "PHASE_1"} />
                 </div>
+
+                {account.isFailed && (
+                  <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4">
+                    <div className="text-sm font-semibold text-red-800">Account Failed</div>
+                    <p className="mt-1 text-sm text-red-700">
+                      {account.breachEvent?.message ??
+                        "This account breached a risk rule and is no longer active."}
+                    </p>
+                  </div>
+                )}
 
                 <div className="mt-6 grid gap-4 sm:grid-cols-3">
                   <Metric label="Balance" value={formatCents(account.currentBalanceCents)} />

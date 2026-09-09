@@ -53,9 +53,13 @@ enum PaymentStatus {
 
 enum PayoutStatus {
   PENDING
+  UNDER_REVIEW
   APPROVED
-  REJECTED
+  PROCESSING
   PAID
+  REJECTED
+  CANCELLED
+  AVAILABLE
 }
 
 enum TradeSide {
@@ -134,6 +138,10 @@ model ChallengeTemplate {
 
   // Daily reset time (UTC, "HH:mm") used by the risk engine for day boundaries
   dailyResetTimeUtc String @default("00:00")
+
+  // Payout center configuration (admin-configurable per template).
+  minPayoutCents  Int @default(3000)
+  payoutCycleDays Int @default(14)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -290,6 +298,7 @@ model Payout {
   requestedAt DateTime    @default(now())
   processedAt DateTime?
   notes       String?
+  rejectionReason String?
 
   @@index([accountId])
   @@index([status])
