@@ -72,8 +72,8 @@ export default function PricingPage() {
     <>
       <Nav />
       <main className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <h1 className="text-3xl font-bold">Choose your challenge</h1>
-        <p className="mt-2 max-w-2xl text-white/60">
+        <h1 className="text-3xl font-bold text-gray-900">Choose your challenge</h1>
+        <p className="mt-2 max-w-2xl text-gray-600">
           All account sizes share the same rule structure across two evaluation phases before funding. Pick a size
           to see live pricing and rules pulled directly from our configuration.
         </p>
@@ -85,8 +85,8 @@ export default function PricingPage() {
               onClick={() => setSelectedId(t.id)}
               className={`rounded-lg border px-5 py-3 text-sm font-semibold transition ${
                 selectedId === t.id
-                  ? "border-[var(--brand-primary)] bg-[var(--brand-primary)]/20"
-                  : "border-white/15 hover:border-white/30"
+                  ? "border-[var(--brand-primary)] bg-[var(--brand-primary)]/10 text-gray-900"
+                  : "border-gray-300 text-gray-700 hover:border-gray-400"
               }`}
             >
               ${t.accountSize.toLocaleString()}
@@ -107,26 +107,26 @@ export default function PricingPage() {
               <RuleCard label="Funded Profit Split" value={`${selected.profitSplitTraderPct}% to you`} />
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-6">
-              <div className="text-sm text-white/60">One-time evaluation fee</div>
-              <div className="mt-1 text-3xl font-bold">{formatCents(selected.priceCents)}</div>
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="text-sm text-gray-600">One-time evaluation fee</div>
+              <div className="mt-1 text-3xl font-bold text-gray-900">{formatCents(selected.priceCents)}</div>
 
-              <label className="mt-6 block text-xs text-white/50">Coupon code (optional)</label>
+              <label className="mt-6 block text-xs text-gray-500">Coupon code (optional)</label>
               <input
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value)}
                 placeholder="e.g. WELCOME10"
-                className="mt-1 w-full rounded-md border border-white/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-[var(--brand-primary)]"
+                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[var(--brand-primary)]"
               />
 
               <button
                 onClick={startCheckout}
                 disabled={loading}
-                className="mt-6 w-full rounded-md bg-[var(--brand-primary)] px-4 py-3 text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+                className="mt-6 w-full rounded-md bg-[var(--brand-primary)] px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
               >
                 {loading ? "Starting checkout…" : "Start Challenge"}
               </button>
-              {message && <p className="mt-3 text-xs text-white/60">{message}</p>}
+              {message && <p className="mt-3 text-xs text-gray-600">{message}</p>}
             </div>
           </div>
         )}
@@ -138,9 +138,9 @@ export default function PricingPage() {
 
 function RuleCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-      <div className="text-xs uppercase tracking-wide text-white/40">{label}</div>
-      <div className="mt-1 text-lg font-semibold">{value}</div>
+    <div className="rounded-lg border border-gray-200 bg-white p-4">
+      <div className="text-xs uppercase tracking-wide text-gray-400">{label}</div>
+      <div className="mt-1 text-lg font-semibold text-gray-900">{value}</div>
     </div>
   );
 }

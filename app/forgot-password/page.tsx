@@ -21,24 +21,24 @@ export default function ForgotPasswordPage() {
     <>
       <Nav />
       <main className="mx-auto flex max-w-md flex-col px-4 py-20 sm:px-6">
-        <h1 className="text-2xl font-bold">Reset your password</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Reset your password</h1>
         {sent ? (
-          <p className="mt-6 text-white/70">
+          <p className="mt-6 text-gray-600">
             If an account exists for that email, a reset link has been sent (check the server console in dev mode).
           </p>
         ) : (
           <form onSubmit={onSubmit} className="mt-8 space-y-4">
             <div>
-              <label className="block text-sm text-white/60">Email</label>
+              <label className="block text-sm text-gray-600">Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full rounded-md border border-white/15 bg-transparent px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
+                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-[var(--brand-primary)]"
               />
             </div>
-            <button className="w-full rounded-md bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold hover:opacity-90">
+            <button className="w-full rounded-md bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90">
               Send reset link
             </button>
           </form>

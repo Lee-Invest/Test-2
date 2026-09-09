@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/authz";
-import { evaluateRisk, computeTradingStats, countTradingDays } from "@/lib/risk-engine";
+import { evaluateRisk, computeTradingStats, countTradingDays, calculatePayout } from "@/lib/risk-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +51,13 @@ export async function GET() {
 
     const stats = computeTradingStats(account.trades.map((t) => ({ pnlCents: t.pnlCents })));
 
+    const isFunded = currentPhase?.type === "FUNDED" && currentPhase.status === "FUNDED";
+    const payoutCalc = calculatePayout(
+      account.startingBalanceCents,
+      account.currentBalanceCents,
+      Number(account.template.profitSplitTraderPct)
+    );
+
     return {
       id: account.id,
       accountSize: account.template.accountSize,
@@ -64,6 +71,9 @@ export async function GET() {
       risk,
       stats,
       trades: account.trades.slice(0, 100),
+      isFunded,
+      profitSplitTraderPct: Number(account.template.profitSplitTraderPct),
+      availablePayoutCents: isFunded ? payoutCalc.traderShareCents : 0,
     };
   });
 

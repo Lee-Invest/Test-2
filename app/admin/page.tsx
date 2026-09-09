@@ -13,14 +13,14 @@ export default function AdminPage() {
     <>
       <Nav />
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <h1 className="text-3xl font-bold">Admin</h1>
-        <div className="mt-6 flex gap-2 border-b border-white/10">
+        <h1 className="text-3xl font-bold text-gray-900">Admin</h1>
+        <div className="mt-6 flex gap-2 border-b border-gray-200">
           {(["analytics", "templates", "accounts", "payouts"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`px-4 py-2 text-sm font-medium capitalize ${
-                tab === t ? "border-b-2 border-[var(--brand-primary)] text-white" : "text-white/50"
+                tab === t ? "border-b-2 border-[var(--brand-primary)] text-gray-900" : "text-gray-500"
               }`}
             >
               {t}
@@ -52,7 +52,7 @@ function Analytics() {
     fetch("/api/admin/analytics").then((r) => r.json()).then(setData);
   }, []);
 
-  if (!data) return <p className="text-white/50">Loading…</p>;
+  if (!data) return <p className="text-gray-500">Loading…</p>;
 
   const cards = [
     { label: "Revenue", value: formatCents(data.revenueCents) },
@@ -65,9 +65,9 @@ function Analytics() {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
       {cards.map((c) => (
-        <div key={c.label} className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-          <div className="text-xs uppercase tracking-wide text-white/40">{c.label}</div>
-          <div className="mt-1 text-xl font-bold">{c.value}</div>
+        <div key={c.label} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="text-xs uppercase tracking-wide text-gray-400">{c.label}</div>
+          <div className="mt-1 text-xl font-bold text-gray-900">{c.value}</div>
         </div>
       ))}
     </div>
@@ -132,10 +132,10 @@ function Templates() {
   return (
     <div className="space-y-6">
       {templates.map((t) => (
-        <div key={t.id} className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
+        <div key={t.id} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <div className="font-semibold">${t.accountSize.toLocaleString()} — {t.name}</div>
-            <label className="flex items-center gap-2 text-xs text-white/60">
+            <div className="font-semibold text-gray-900">${t.accountSize.toLocaleString()} — {t.name}</div>
+            <label className="flex items-center gap-2 text-xs text-gray-600">
               <input type="checkbox" checked={t.active} onChange={(e) => update(t.id, "active", e.target.checked)} />
               Active
             </label>
@@ -153,7 +153,7 @@ function Templates() {
           <button
             onClick={() => save(t)}
             disabled={saving === t.id}
-            className="mt-4 rounded-md bg-[var(--brand-primary)] px-4 py-1.5 text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+            className="mt-4 rounded-md bg-[var(--brand-primary)] px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
           >
             {saving === t.id ? "Saving…" : "Save"}
           </button>
@@ -166,11 +166,11 @@ function Templates() {
 function Field({ label, value, onChange }: { label: string; value: string | number; onChange: (v: string) => void }) {
   return (
     <div>
-      <label className="block text-[10px] uppercase tracking-wide text-white/40">{label}</label>
+      <label className="block text-[10px] uppercase tracking-wide text-gray-400">{label}</label>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-md border border-white/15 bg-transparent px-2 py-1 text-sm"
+        className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900"
       />
     </div>
   );
@@ -206,7 +206,7 @@ function Accounts() {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
-        <thead className="text-white/40">
+        <thead className="text-gray-400">
           <tr>
             <th className="py-2 pr-4">Trader</th>
             <th className="py-2 pr-4">Size</th>
@@ -218,7 +218,7 @@ function Accounts() {
         </thead>
         <tbody>
           {accounts.map((a) => (
-            <tr key={a.id} className="border-t border-white/5">
+            <tr key={a.id} className="border-t border-gray-100 text-gray-900">
               <td className="py-2 pr-4">{a.user.name ?? a.user.email}</td>
               <td className="py-2 pr-4">${a.template.accountSize.toLocaleString()}</td>
               <td className="py-2 pr-4">{formatCents(a.currentBalanceCents)}</td>
@@ -241,7 +241,7 @@ function Accounts() {
 
 function ActionButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className="rounded border border-white/15 px-2 py-0.5 text-xs hover:bg-white/10">
+    <button onClick={onClick} className="rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-50">
       {children}
     </button>
   );
@@ -271,12 +271,12 @@ function Payouts() {
     load();
   }
 
-  if (payouts.length === 0) return <p className="text-white/50">No payout requests yet.</p>;
+  if (payouts.length === 0) return <p className="text-gray-500">No payout requests yet.</p>;
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
-        <thead className="text-white/40">
+        <thead className="text-gray-400">
           <tr>
             <th className="py-2 pr-4">Trader</th>
             <th className="py-2 pr-4">Amount</th>
@@ -286,7 +286,7 @@ function Payouts() {
         </thead>
         <tbody>
           {payouts.map((p) => (
-            <tr key={p.id} className="border-t border-white/5">
+            <tr key={p.id} className="border-t border-gray-100 text-gray-900">
               <td className="py-2 pr-4">{p.account.user.name ?? p.account.user.email}</td>
               <td className="py-2 pr-4">{formatCents(p.amountCents)}</td>
               <td className="py-2 pr-4">{p.status}</td>

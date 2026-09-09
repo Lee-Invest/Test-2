@@ -30,20 +30,20 @@ const columns = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-[#08080f]">
+    <footer className="border-t border-gray-200 bg-gray-50">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           <div>
-            <div className="text-lg font-bold">{branding.name}</div>
-            <p className="mt-2 max-w-xs text-sm text-white/50">{branding.tagline}</p>
+            <div className="text-lg font-bold text-gray-900">{branding.name}</div>
+            <p className="mt-2 max-w-xs text-sm text-gray-500">{branding.tagline}</p>
           </div>
           {columns.map((col) => (
             <div key={col.title}>
-              <div className="text-sm font-semibold text-white/80">{col.title}</div>
+              <div className="text-sm font-semibold text-gray-800">{col.title}</div>
               <ul className="mt-3 space-y-2">
                 {col.links.map((l) => (
                   <li key={l.href}>
-                    <Link href={l.href} className="text-sm text-white/50 hover:text-white">
+                    <Link href={l.href} className="text-sm text-gray-500 hover:text-gray-900">
                       {l.label}
                     </Link>
                   </li>
@@ -52,7 +52,7 @@ export function Footer() {
             </div>
           ))}
         </div>
-        <div className="mt-10 border-t border-white/10 pt-6 text-xs text-white/40">
+        <div className="mt-10 border-t border-gray-200 pt-6 text-xs text-gray-400">
           &copy; {new Date().getFullYear()} {branding.legalEntity}. Trading involves substantial risk. Past
           performance is not indicative of future results. {branding.name} is an evaluation and funding platform;
           it does not provide investment advice.

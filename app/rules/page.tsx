@@ -11,7 +11,7 @@ export default function RulesPage() {
         <li>Accounts that breach a loss limit are marked failed immediately, at any phase, including the funded stage.</li>
         <li>All specific numeric limits for your challenge are shown on the Pricing page before purchase and on your dashboard afterward.</li>
       </ul>
-      <p className="mt-6 text-sm text-white/50">
+      <p className="mt-6 text-sm text-gray-500">
         Full technical formulas are documented in our public risk engine reference for transparency.
       </p>
     </LegalPage>
