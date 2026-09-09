@@ -9,8 +9,8 @@ export default function CheckoutSuccessPage() {
       <main className="mx-auto max-w-xl px-4 py-24 text-center sm:px-6">
         <h1 className="text-3xl font-bold">Payment received</h1>
         <p className="mt-4 text-white/70">
-          Thanks for starting your challenge. Once your payment is confirmed by our webhook, your Phase 1 account
-          will appear on your dashboard.
+          Thanks for starting your challenge. Your Phase 1 account has been created and is ready
+          on your dashboard.
         </p>
         <Link
           href="/dashboard"

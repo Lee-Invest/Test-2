@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { stripe } from "@/lib/stripe";
+import { stripe, isStripeConfigured } from "@/lib/stripe";
 import { checkoutSchema } from "@/lib/validation";
 import { applyCoupon } from "@/lib/risk-engine";
 import { rateLimit } from "@/lib/rate-limit";
@@ -68,6 +68,19 @@ export async function POST(req: NextRequest) {
   });
 
   const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+
+  // No real Stripe account configured: send the buyer to a simulated
+  // payment page (looks and feels like a card checkout) instead of a real
+  // Stripe Checkout Session, so the full "buy a challenge -> pay -> get an
+  // account -> see the dashboard" flow can be exercised end to end without
+  // a Stripe account. No card data is collected or transmitted anywhere.
+  if (!isStripeConfigured) {
+    return NextResponse.json({
+      url: `${baseUrl}/checkout/pay?orderId=${order.id}`,
+      orderId: order.id,
+      devMode: true,
+    });
+  }
 
   try {
     const checkoutSession = await stripe.checkout.sessions.create({
