@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/authz";
 import { payoutActionSchema } from "@/lib/validation";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const { error } = await requireAdmin();
   if (error) return NextResponse.json({ error }, { status: 403 });

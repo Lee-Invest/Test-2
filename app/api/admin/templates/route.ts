@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/authz";
 import { templateUpsertSchema } from "@/lib/validation";
 
+export const dynamic = "force-dynamic";
+
 // Admin-only CRUD for ChallengeTemplates. All numeric business rules
 // (pricing, targets, drawdown %, min days, profit split) are mutated ONLY
 // through this authenticated, role-checked route — never client-writable.

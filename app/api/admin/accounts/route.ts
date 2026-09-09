@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/authz";
 import { accountAdminActionSchema } from "@/lib/validation";
 
+export const dynamic = "force-dynamic";
+
 // Admin-only account management. Traders can never PATCH their own balance,
 // phase, or status directly — every mutation here is server-side, role
 // checked, and logged to AuditLog.

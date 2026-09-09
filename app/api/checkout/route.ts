@@ -7,6 +7,8 @@ import { checkoutSchema } from "@/lib/validation";
 import { applyCoupon } from "@/lib/risk-engine";
 import { rateLimit } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {

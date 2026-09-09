@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/authz";
 import { evaluateRisk, computeTradingStats, countTradingDays } from "@/lib/risk-engine";
 
+export const dynamic = "force-dynamic";
+
 // Read-only aggregate view for the trader dashboard. All figures are
 // computed server-side from stored Trade/Account rows via the risk engine —
 // a trader has no write path to balance/phase/status here.

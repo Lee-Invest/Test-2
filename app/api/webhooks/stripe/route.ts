@@ -4,6 +4,8 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { provisionOrder } from "@/lib/provisioning";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   const sig = req.headers.get("stripe-signature");
   const rawBody = await req.text();

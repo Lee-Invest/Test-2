@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validation";
 import { rateLimit } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
   const rl = rateLimit(`register:${ip}`, 5, 60_000);

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/authz";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const { error } = await requireAdmin();
   if (error) return NextResponse.json({ error }, { status: 403 });
