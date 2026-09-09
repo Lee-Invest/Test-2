@@ -1,101 +1,91 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Nav } from "@/components/nav";
+import { Footer } from "@/components/footer";
+import { branding } from "@/lib/branding";
+
+const steps = [
+  { title: "Pick a challenge", body: "Choose an account size from $10K to $200K and pay a one-time evaluation fee." },
+  { title: "Pass two phases", body: "Hit the profit target in Phase 1 and Phase 2 while respecting the drawdown rules." },
+  { title: "Get funded", body: "Trade a funded account and keep up to 80% of the profits you generate." },
+];
+
+const stats = [
+  { label: "Account sizes", value: "$10K – $200K" },
+  { label: "Profit split", value: "Up to 80%" },
+  { label: "Evaluation phases", value: "2" },
+  { label: "Payout cadence", value: "On request" },
+];
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <>
+      <Nav />
+      <main>
+        <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+          <div className="max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--brand-accent)]">
+              {branding.name} Trader Challenge
+            </p>
+            <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
+              Trade our capital. Keep the upside.
+            </h1>
+            <p className="mt-6 text-lg text-white/70">
+              {branding.name} funds skilled traders who can demonstrate consistent, disciplined risk management
+              through a structured two-phase evaluation. Clear rules, transparent pricing, no guesswork.
+            </p>
+            <div className="mt-8 flex gap-4">
+              <Link
+                href="/pricing"
+                className="rounded-md bg-[var(--brand-primary)] px-6 py-3 text-sm font-semibold hover:opacity-90"
+              >
+                View Challenges
+              </Link>
+              <Link href="/how-it-works" className="rounded-md border border-white/20 px-6 py-3 text-sm font-semibold hover:bg-white/5">
+                How It Works
+              </Link>
+            </div>
+          </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          <div className="mt-16 grid grid-cols-2 gap-6 border-t border-white/10 pt-10 sm:grid-cols-4">
+            {stats.map((s) => (
+              <div key={s.label}>
+                <div className="text-2xl font-bold">{s.value}</div>
+                <div className="text-sm text-white/50">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="border-t border-white/10 bg-[#0e0e1a] py-20">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <h2 className="text-2xl font-bold">Three steps to a funded account</h2>
+            <div className="mt-10 grid gap-8 sm:grid-cols-3">
+              {steps.map((step, i) => (
+                <div key={step.title} className="rounded-xl border border-white/10 bg-white/[0.03] p-6">
+                  <div className="text-sm font-semibold text-[var(--brand-accent)]">Step {i + 1}</div>
+                  <div className="mt-2 text-lg font-semibold">{step.title}</div>
+                  <p className="mt-2 text-sm text-white/60">{step.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-4 py-20 text-center sm:px-6">
+          <h2 className="text-2xl font-bold">Ready to prove your edge?</h2>
+          <p className="mx-auto mt-3 max-w-xl text-white/60">
+            Every challenge rule — profit targets, drawdown limits, minimum trading days, and profit split — is
+            transparent and configured the same way for every trader.
+          </p>
+          <Link
+            href="/pricing"
+            className="mt-6 inline-block rounded-md bg-[var(--brand-primary)] px-6 py-3 text-sm font-semibold hover:opacity-90"
           >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+            Choose Your Account Size
+          </Link>
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      <Footer />
+    </>
   );
 }
