@@ -60,13 +60,21 @@ docs/
 
 ## Local development
 
+The fastest path to a running app on your own machine — no cloud database
+signup required:
+
 ```bash
+docker compose up -d        # starts a local Postgres (see docker-compose.yml)
 npm install
-cp .env.example .env        # fill in DATABASE_URL at minimum
+cp .env.example .env        # already points at the docker-compose Postgres
 npx prisma migrate deploy   # applies the versioned migrations in prisma/migrations
 npx prisma db seed          # seeds templates, admin user, demo trader + trades
 npm run dev                 # http://localhost:3000
 ```
+
+(Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+to be installed and running. No Docker? Any local or hosted Postgres works —
+just point `DATABASE_URL` at it instead.)
 
 If you change `prisma/schema.prisma` during development, generate a new
 migration with `npx prisma migrate dev --name <what-changed>` (interactive,
