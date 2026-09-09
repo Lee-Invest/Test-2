@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
@@ -26,6 +26,14 @@ function formatExpiry(value: string) {
 }
 
 export default function SimulatedPaymentPage() {
+  return (
+    <Suspense fallback={null}>
+      <SimulatedPaymentForm />
+    </Suspense>
+  );
+}
+
+function SimulatedPaymentForm() {
   const params = useSearchParams();
   const router = useRouter();
   const orderId = params.get("orderId");
