@@ -52,6 +52,7 @@ lib/
   trading-engine/          Broker abstraction + mock adapter
 prisma/
   schema.prisma            Full data model
+  migrations/              Versioned SQL migrations (applied with `migrate deploy`)
   seed.ts                  Seed script (templates, admin, demo trader + trades)
 docs/
   RISK_ENGINE.md           Full formula reference for the risk engine
@@ -62,10 +63,14 @@ docs/
 ```bash
 npm install
 cp .env.example .env        # fill in DATABASE_URL at minimum
-npx prisma migrate dev      # creates tables from prisma/schema.prisma
+npx prisma migrate deploy   # applies the versioned migrations in prisma/migrations
 npx prisma db seed          # seeds templates, admin user, demo trader + trades
 npm run dev                 # http://localhost:3000
 ```
+
+If you change `prisma/schema.prisma` during development, generate a new
+migration with `npx prisma migrate dev --name <what-changed>` (interactive,
+local only) and commit the resulting `prisma/migrations/*` folder.
 
 ### Tests
 
@@ -125,18 +130,51 @@ are committed anywhere in the repo — only obvious placeholders in
   serverless), replace it with a shared store such as Redis (e.g. Upstash),
   keeping the same `rateLimit(key, limit, windowMs)` interface.
 
-## Production deployment notes
+## Deploying to Vercel
 
-- **Hosting**: Vercel is the natural fit for Next.js App Router; any Node
-  host that supports Next.js works too.
-- **Database**: use a hosted Postgres (Neon, Supabase, RDS, etc.). Run
-  `npx prisma migrate deploy` as part of your deploy pipeline (not `migrate
-  dev`, which is for local development).
-- **Stripe**: set real `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` /
-  `STRIPE_PUBLISHABLE_KEY` in your hosting provider's environment variable
-  settings, and register the webhook endpoint
-  (`https://yourdomain.com/api/webhooks/stripe`) in the Stripe dashboard for
-  the `checkout.session.completed` event.
+1. **Import the repo**: Vercel → New Project → Import this repository, and
+   pick the branch you want to deploy.
+2. **Database**: provision a hosted Postgres — [Neon](https://neon.tech) or
+   [Supabase](https://supabase.com) both have a free tier that works fine
+   for this project — and copy its connection string.
+3. **Environment variables** (Project Settings → Environment Variables), see
+   `.env.example` for the full list:
+   - `DATABASE_URL` — the hosted Postgres connection string
+   - `NEXTAUTH_SECRET` — generate with `openssl rand -base64 32`
+   - `NEXTAUTH_URL` — your Vercel domain, e.g. `https://your-app.vercel.app`
+   - `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` —
+     test-mode keys from your Stripe dashboard
+4. **Deploy.** The `build` script runs `prisma generate && next build` (see
+   note below on why), so the Prisma Client is always regenerated fresh —
+   no extra Vercel build-command configuration is needed.
+5. **Apply migrations and seed** against the hosted database — from your
+   machine, with `DATABASE_URL` pointed at the same hosted Postgres:
+   ```bash
+   npx prisma migrate deploy
+   npx prisma db seed
+   ```
+6. **Stripe webhook**: in the Stripe dashboard, add an endpoint pointing to
+   `https://your-app.vercel.app/api/webhooks/stripe` for the
+   `checkout.session.completed` event, and copy its signing secret into
+   `STRIPE_WEBHOOK_SECRET`.
+
+**Two Vercel-specific gotchas already handled in this repo** (kept here so
+they don't get "fixed" back into breakage):
+- `"build": "prisma generate && next build"` — Vercel's install step can
+  skip third-party lifecycle scripts (`postinstall`/`preinstall`), which
+  silently leaves Prisma's generated client stale. Prisma generate runs
+  explicitly as the first step of the build command instead, per
+  [Prisma's own Vercel guidance](https://pris.ly/d/vercel-build).
+- Every API route that touches Prisma or `getServerSession` exports
+  `export const dynamic = "force-dynamic"`. Without it, Next can't always
+  detect that a route is request-dependent and may try to prerender it at
+  build time — executing a database query against a database that doesn't
+  exist on the build machine and failing the build.
+
+## Other production notes
+
+- **Hosting**: any Node host that supports Next.js App Router works, not
+  just Vercel.
 - **Email**: replace `lib/mailer.ts`'s console.log stub with a real
   nodemailer transport (or a transactional email API) using the `EMAIL_*`
   env vars.
