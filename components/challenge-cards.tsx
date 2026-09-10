@@ -57,100 +57,102 @@ export function ChallengeCards() {
   }
 
   const popularIdx = templates.findIndex((t) => t.accountSize === 100_000);
-  const cols = templates.length;
+  const gridCols = `minmax(160px,200px) repeat(${templates.length}, minmax(0, 1fr))`;
 
-  const gridCols = `minmax(140px,180px) repeat(${cols}, minmax(0, 1fr))`;
+  const rows: { icon: React.ElementType; label: string; render: (t: Template) => React.ReactNode }[] = [
+    {
+      icon: Target,
+      label: "Phase 1 Profit Target",
+      render: (t) => <span className="font-semibold text-white">{t.phase1ProfitTargetPct} percent</span>,
+    },
+    {
+      icon: Target,
+      label: "Phase 2 Profit Target",
+      render: (t) => <span className="font-semibold text-white">{t.phase2ProfitTargetPct} percent</span>,
+    },
+    {
+      icon: TrendingDown,
+      label: "Maximum Daily Loss",
+      render: (t) => <span className="font-semibold text-white">{t.maxDailyLossPct} percent</span>,
+    },
+    {
+      icon: ShieldAlert,
+      label: "Maximum Total Loss",
+      render: (t) => <span className="font-semibold text-white">{t.maxOverallLossPct} percent</span>,
+    },
+    {
+      icon: CalendarDays,
+      label: "Minimum Trading Days",
+      render: (t) => <span className="font-semibold text-white">{t.phase1MinTradingDays} days</span>,
+    },
+    {
+      icon: InfinityIcon,
+      label: "Trading Period",
+      render: () => <span className="font-semibold text-white">Unlimited</span>,
+    },
+    {
+      icon: Percent,
+      label: "Payout Split",
+      render: (t) => <span className="font-semibold text-[var(--brand-accent)]">Up to {t.profitSplitTraderPct} percent</span>,
+    },
+  ];
 
   return (
-    <div className="rounded-2xl bg-gray-900 p-4 sm:p-8">
-      {/* Desktop: one shared grid so label rows and card rows are always pixel-aligned */}
-      <div className="hidden overflow-x-auto lg:block">
-        <div className="grid gap-x-4 gap-y-0" style={{ gridTemplateColumns: gridCols }}>
-          {/* Header row: account sizes */}
-          <div />
+    <div className="rounded-3xl bg-gradient-to-b from-gray-900 to-gray-950 p-4 sm:p-8">
+      {/* Desktop: one shared grid, each metric its own frosted-glass bar */}
+      <div className="hidden lg:block">
+        {/* Header bar: account sizes */}
+        <div
+          className="grid items-center gap-x-4 rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-5 backdrop-blur-xl"
+          style={{ gridTemplateColumns: gridCols }}
+        >
+          <div className="text-sm font-semibold text-gray-300">Account Size</div>
           {templates.map((t, i) => (
-            <div key={t.id} className={`relative rounded-t-xl px-4 pt-6 text-center ${i === popularIdx ? "bg-white/10" : ""}`}>
+            <div key={t.id} className="relative text-center">
               {i === popularIdx && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--brand-primary)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--brand-primary)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
                   Best Value
                 </div>
               )}
-              <div className="text-xs uppercase tracking-wide text-gray-400">Account</div>
               <div className="text-2xl font-bold text-white">${t.accountSize.toLocaleString()}</div>
             </div>
           ))}
+        </div>
 
-          <GridRow icon={Target} label="Profit Target">
-            {templates.map((t) => (
-              <span key={t.id} className="text-xs text-gray-200">
-                <span className="text-gray-400">P1</span> {t.phase1ProfitTargetPct}%{" "}
-                <span className="text-gray-400">P2</span> {t.phase2ProfitTargetPct}%
-              </span>
-            ))}
-          </GridRow>
-
-          <GridRow icon={TrendingDown} label="Max Daily Loss">
-            {templates.map((t) => (
-              <span key={t.id} className="font-semibold text-gray-200">
-                {t.maxDailyLossPct}%
-              </span>
-            ))}
-          </GridRow>
-
-          <GridRow icon={ShieldAlert} label="Max Total Loss">
-            {templates.map((t) => (
-              <span key={t.id} className="font-semibold text-gray-200">
-                {t.maxOverallLossPct}%
-              </span>
-            ))}
-          </GridRow>
-
-          <GridRow icon={CalendarDays} label="Min Trading Days">
-            {templates.map((t) => (
-              <span key={t.id} className="font-semibold text-gray-200">
-                {t.phase1MinTradingDays} days
-              </span>
-            ))}
-          </GridRow>
-
-          <GridRow icon={InfinityIcon} label="Trading Period">
-            {templates.map((t) => (
-              <span key={t.id} className="font-semibold text-gray-200">
-                Unlimited
-              </span>
-            ))}
-          </GridRow>
-
-          <GridRow icon={Percent} label="Payout Split">
-            {templates.map((t) => (
-              <span key={t.id} className="font-semibold text-[var(--brand-accent)]">
-                Up to {t.profitSplitTraderPct}%
-              </span>
-            ))}
-          </GridRow>
-
-          {/* Divider */}
-          <div className="border-t border-white/10 py-1" />
-          {templates.map((t) => (
-            <div key={t.id} className="border-t border-white/10 py-1" />
-          ))}
-
-          {/* Price row */}
-          <div className="flex items-center pr-2 text-xs text-gray-400">One-time evaluation fee</div>
-          {templates.map((t) => (
-            <div key={t.id} className="pb-2 text-center">
-              <div className="text-xl font-bold text-white">{formatCents(t.priceCents)}</div>
+        {/* Metric bars */}
+        <div className="mt-3 space-y-3">
+          {rows.map((row) => (
+            <div
+              key={row.label}
+              className="grid items-center gap-x-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 backdrop-blur-xl"
+              style={{ gridTemplateColumns: gridCols }}
+            >
+              <div className="flex items-center gap-2 text-sm text-gray-300">
+                <row.icon size={16} className="shrink-0 text-gray-400" />
+                <span>{row.label}</span>
+              </div>
+              {templates.map((t) => (
+                <div key={t.id} className="text-center text-sm">
+                  {row.render(t)}
+                </div>
+              ))}
             </div>
           ))}
+        </div>
 
-          {/* Button row */}
-          <div />
+        {/* Price + CTA bar */}
+        <div
+          className="mt-3 grid items-center gap-x-4 rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-5 backdrop-blur-xl"
+          style={{ gridTemplateColumns: gridCols }}
+        >
+          <div className="text-sm text-gray-300">One-Time Evaluation Fee</div>
           {templates.map((t) => (
-            <div key={t.id} className={`rounded-b-xl px-3 pb-6 ${t.accountSize === 100_000 ? "bg-white/10" : ""}`}>
+            <div key={t.id} className="flex flex-col items-center gap-3">
+              <div className="text-xl font-bold text-white">{formatCents(t.priceCents)}</div>
               <button
                 onClick={() => startChallenge(t.id)}
                 disabled={loadingId === t.id}
-                className="w-full rounded-md bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                className="w-full rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--brand-primary)]/20 hover:opacity-90 disabled:opacity-50"
               >
                 {loadingId === t.id ? "Starting…" : "Start Now"}
               </button>
@@ -158,86 +160,57 @@ export function ChallengeCards() {
           ))}
         </div>
 
-        {/* Avg reward pills */}
-        <div className="mt-6 grid gap-x-4" style={{ gridTemplateColumns: gridCols }}>
-          <div />
+        {/* Estimated reward bar */}
+        <div className="mt-3 grid items-center gap-x-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3" style={{ gridTemplateColumns: gridCols }}>
+          <div className="text-xs text-gray-400">Estimated First Payout</div>
           {templates.map((t) => {
             const estCents = Math.round(
               t.accountSize * 100 * (Number(t.phase1ProfitTargetPct) / 100) * (Number(t.profitSplitTraderPct) / 100)
             );
             return (
-              <div key={t.id} className="rounded-lg bg-white/5 py-2 text-center text-xs text-gray-300">
-                <span className="font-semibold text-white">{formatCents(estCents)}</span> Est. Reward
+              <div key={t.id} className="text-center text-xs font-semibold text-gray-200">
+                {formatCents(estCents)}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Mobile: stacked cards */}
+      {/* Mobile: stacked glass cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:hidden">
         {templates.map((t, i) => (
           <div
             key={t.id}
-            className={`rounded-xl p-5 ${i === popularIdx ? "bg-white/10 ring-1 ring-[var(--brand-primary)]" : "bg-white/5"}`}
+            className={`rounded-2xl border p-5 backdrop-blur-xl ${
+              i === popularIdx ? "border-[var(--brand-primary)]/50 bg-white/[0.08]" : "border-white/10 bg-white/[0.05]"
+            }`}
           >
             <div className="text-center">
-              <div className="text-xs uppercase tracking-wide text-gray-400">Account</div>
+              <div className="text-xs uppercase tracking-wide text-gray-400">Account Size</div>
               <div className="text-xl font-bold text-white">${t.accountSize.toLocaleString()}</div>
             </div>
             <div className="mt-3 text-center text-xl font-bold text-white">{formatCents(t.priceCents)}</div>
             <button
               onClick={() => startChallenge(t.id)}
               disabled={loadingId === t.id}
-              className="mt-3 w-full rounded-md bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+              className="mt-3 w-full rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
             >
               {loadingId === t.id ? "Starting…" : "Start Now"}
             </button>
             <dl className="mt-4 space-y-2 border-t border-white/10 pt-4 text-xs">
-              <MobileRow label="P1 / P2 Target" value={`${t.phase1ProfitTargetPct}% / ${t.phase2ProfitTargetPct}%`} />
-              <MobileRow label="Max Daily Loss" value={`${t.maxDailyLossPct}%`} />
-              <MobileRow label="Max Total Loss" value={`${t.maxOverallLossPct}%`} />
-              <MobileRow label="Min Trading Days" value={`${t.phase1MinTradingDays} days`} />
-              <MobileRow label="Payout Split" value={`Up to ${t.profitSplitTraderPct}%`} />
+              {rows.map((row) => (
+                <div key={row.label} className="flex items-center justify-between">
+                  <dt className="flex items-center gap-1.5 text-gray-400">
+                    <row.icon size={13} className="shrink-0" />
+                    {row.label}
+                  </dt>
+                  <dd>{row.render(t)}</dd>
+                </div>
+              ))}
             </dl>
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function GridRow({
-  icon: Icon,
-  label,
-  children,
-}: {
-  icon: React.ElementType;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <>
-      <div className="flex items-center gap-2 py-2.5 text-xs text-gray-300">
-        <Icon size={14} className="shrink-0 text-gray-500" />
-        <span className="border-b border-dotted border-gray-600">{label}</span>
-      </div>
-      {children instanceof Array
-        ? children.map((child, i) => (
-            <div key={i} className="flex items-center justify-center py-2.5 text-center">
-              {child}
-            </div>
-          ))
-        : children}
-    </>
-  );
-}
-
-function MobileRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between">
-      <dt className="text-gray-400">{label}</dt>
-      <dd className="font-semibold text-white">{value}</dd>
     </div>
   );
 }
