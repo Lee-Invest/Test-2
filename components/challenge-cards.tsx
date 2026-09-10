@@ -57,38 +57,37 @@ export function ChallengeCards() {
   }
 
   const popularIdx = templates.findIndex((t) => t.accountSize === 100_000);
-  const gridCols = `minmax(160px,200px) repeat(${templates.length}, minmax(0, 1fr))`;
 
   const rows: { icon: React.ElementType; label: string; render: (t: Template) => React.ReactNode }[] = [
     {
       icon: Target,
       label: "Phase 1 Profit Target",
-      render: (t) => <span className="font-semibold text-white">{t.phase1ProfitTargetPct} percent</span>,
+      render: (t) => <span className="font-semibold text-gray-900">{t.phase1ProfitTargetPct} percent</span>,
     },
     {
       icon: Target,
       label: "Phase 2 Profit Target",
-      render: (t) => <span className="font-semibold text-white">{t.phase2ProfitTargetPct} percent</span>,
+      render: (t) => <span className="font-semibold text-gray-900">{t.phase2ProfitTargetPct} percent</span>,
     },
     {
       icon: TrendingDown,
       label: "Maximum Daily Loss",
-      render: (t) => <span className="font-semibold text-white">{t.maxDailyLossPct} percent</span>,
+      render: (t) => <span className="font-semibold text-gray-900">{t.maxDailyLossPct} percent</span>,
     },
     {
       icon: ShieldAlert,
       label: "Maximum Total Loss",
-      render: (t) => <span className="font-semibold text-white">{t.maxOverallLossPct} percent</span>,
+      render: (t) => <span className="font-semibold text-gray-900">{t.maxOverallLossPct} percent</span>,
     },
     {
       icon: CalendarDays,
       label: "Minimum Trading Days",
-      render: (t) => <span className="font-semibold text-white">{t.phase1MinTradingDays} days</span>,
+      render: (t) => <span className="font-semibold text-gray-900">{t.phase1MinTradingDays} days</span>,
     },
     {
       icon: InfinityIcon,
       label: "Trading Period",
-      render: () => <span className="font-semibold text-white">Unlimited</span>,
+      render: () => <span className="font-semibold text-gray-900">Unlimited</span>,
     },
     {
       icon: Percent,
@@ -98,119 +97,61 @@ export function ChallengeCards() {
   ];
 
   return (
-    <div className="rounded-3xl bg-gradient-to-b from-gray-900 to-gray-950 p-4 sm:p-8">
-      {/* Desktop: one shared grid, each metric its own frosted-glass bar */}
-      <div className="hidden lg:block">
-        {/* Header bar: account sizes */}
-        <div
-          className="grid items-center gap-x-4 rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-5 backdrop-blur-xl"
-          style={{ gridTemplateColumns: gridCols }}
-        >
-          <div className="text-sm font-semibold text-gray-300">Account Size</div>
-          {templates.map((t, i) => (
-            <div key={t.id} className="relative text-center">
-              {i === popularIdx && (
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--brand-primary)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                  Best Value
-                </div>
-              )}
-              <div className="text-2xl font-bold text-white">${t.accountSize.toLocaleString()}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Metric bars */}
-        <div className="mt-3 space-y-3">
-          {rows.map((row) => (
-            <div
-              key={row.label}
-              className="grid items-center gap-x-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 backdrop-blur-xl"
-              style={{ gridTemplateColumns: gridCols }}
-            >
-              <div className="flex items-center gap-2 text-sm text-gray-300">
-                <row.icon size={16} className="shrink-0 text-gray-400" />
-                <span>{row.label}</span>
-              </div>
-              {templates.map((t) => (
-                <div key={t.id} className="text-center text-sm">
-                  {row.render(t)}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-
-        {/* Price + CTA bar */}
-        <div
-          className="mt-3 grid items-center gap-x-4 rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-5 backdrop-blur-xl"
-          style={{ gridTemplateColumns: gridCols }}
-        >
-          <div className="text-sm text-gray-300">One-Time Evaluation Fee</div>
-          {templates.map((t) => (
-            <div key={t.id} className="flex flex-col items-center gap-3">
-              <div className="text-xl font-bold text-white">{formatCents(t.priceCents)}</div>
-              <button
-                onClick={() => startChallenge(t.id)}
-                disabled={loadingId === t.id}
-                className="w-full rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--brand-primary)]/20 hover:opacity-90 disabled:opacity-50"
-              >
-                {loadingId === t.id ? "Starting…" : "Start Now"}
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* Estimated reward bar */}
-        <div className="mt-3 grid items-center gap-x-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3" style={{ gridTemplateColumns: gridCols }}>
-          <div className="text-xs text-gray-400">Estimated First Payout</div>
-          {templates.map((t) => {
-            const estCents = Math.round(
-              t.accountSize * 100 * (Number(t.phase1ProfitTargetPct) / 100) * (Number(t.profitSplitTraderPct) / 100)
-            );
-            return (
-              <div key={t.id} className="text-center text-xs font-semibold text-gray-200">
-                {formatCents(estCents)}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Mobile: stacked glass cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:hidden">
-        {templates.map((t, i) => (
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+      {templates.map((t, i) => {
+        const estCents = Math.round(
+          t.accountSize * 100 * (Number(t.phase1ProfitTargetPct) / 100) * (Number(t.profitSplitTraderPct) / 100)
+        );
+        return (
           <div
             key={t.id}
-            className={`rounded-2xl border p-5 backdrop-blur-xl ${
-              i === popularIdx ? "border-[var(--brand-primary)]/50 bg-white/[0.08]" : "border-white/10 bg-white/[0.05]"
+            className={`relative flex flex-col rounded-2xl border p-5 pt-7 shadow-[0_8px_30px_rgba(0,0,0,0.06)] backdrop-blur-xl transition hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] ${
+              i === popularIdx ? "border-[var(--brand-primary)]/40 bg-white/70" : "border-gray-200/70 bg-white/50"
             }`}
           >
+            {i === popularIdx && (
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--brand-primary)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                Best Value
+              </div>
+            )}
+
             <div className="text-center">
-              <div className="text-xs uppercase tracking-wide text-gray-400">Account Size</div>
-              <div className="text-xl font-bold text-white">${t.accountSize.toLocaleString()}</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">Account Size</div>
+              <div className="text-xl font-bold text-gray-900">${t.accountSize.toLocaleString()}</div>
             </div>
-            <div className="mt-3 text-center text-xl font-bold text-white">{formatCents(t.priceCents)}</div>
+
+            <div className="mt-4 text-center">
+              <div className="text-2xl font-bold text-gray-900">{formatCents(t.priceCents)}</div>
+              <div className="text-xs text-gray-500">One-Time Evaluation Fee</div>
+            </div>
+
             <button
               onClick={() => startChallenge(t.id)}
               disabled={loadingId === t.id}
-              className="mt-3 w-full rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+              className="mt-4 rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--brand-primary)]/20 hover:opacity-90 disabled:opacity-50"
             >
               {loadingId === t.id ? "Starting…" : "Start Now"}
             </button>
-            <dl className="mt-4 space-y-2 border-t border-white/10 pt-4 text-xs">
+
+            <div className="mt-3 text-center text-xs text-gray-500">
+              Estimated First Payout{" "}
+              <span className="font-semibold text-[var(--brand-accent)]">{formatCents(estCents)}</span>
+            </div>
+
+            <dl className="mt-5 space-y-3 border-t border-gray-200/70 pt-4 text-xs">
               {rows.map((row) => (
-                <div key={row.label} className="flex items-center justify-between">
-                  <dt className="flex items-center gap-1.5 text-gray-400">
-                    <row.icon size={13} className="shrink-0" />
-                    {row.label}
+                <div key={row.label} className="flex items-center justify-between gap-2">
+                  <dt className="flex min-w-0 items-center gap-1.5 text-gray-500">
+                    <row.icon size={13} className="shrink-0 text-gray-400" />
+                    <span className="truncate">{row.label}</span>
                   </dt>
-                  <dd>{row.render(t)}</dd>
+                  <dd className="shrink-0">{row.render(t)}</dd>
                 </div>
               ))}
             </dl>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
