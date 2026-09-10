@@ -41,8 +41,8 @@ export default function Home() {
               </p>
               <div className="mt-8 flex gap-4">
                 <Link
-                  href="/pricing"
-                  className="rounded-full bg-[var(--brand-primary)]/90 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl hover:opacity-90"
+                  href="#choose-challenge"
+                  className="rounded-full border border-blue-400/50 bg-blue-500/30 px-6 py-3 text-sm font-semibold text-white shadow-[0_2px_10px_rgba(0,0,0,0.25)] backdrop-blur-xl hover:bg-blue-500/45"
                 >
                   View Challenges
                 </Link>
@@ -78,7 +78,7 @@ export default function Home() {
           </div>
         </div>
 
-        <section className="py-16">
+        <section id="choose-challenge" className="scroll-mt-20 py-16">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <h2 className="text-center text-2xl font-bold text-gray-900">Choose your challenge</h2>
             <p className="mx-auto mt-2 max-w-xl text-center text-gray-600">
