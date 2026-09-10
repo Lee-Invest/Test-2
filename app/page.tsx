@@ -10,14 +10,14 @@ const steps = [
   { title: "Pass two phases", body: "Hit the profit target in Phase 1 and Phase 2 while respecting the drawdown rules." },
   {
     title: "Get funded",
-    body: "Trade a funded account, start at an 80% profit split (scaling up to 95% as you keep getting paid), and get your evaluation fee refunded 100%.",
+    body: "Trade a funded account and keep 80% of the profits you generate.",
   },
 ];
 
 const stats = [
   { label: "Account sizes", value: "$10K – $200K" },
   { label: "Profit split", value: "80%" },
-  { label: "Fee refund on funding", value: "100%" },
+  { label: "Evaluation phases", value: "2" },
   { label: "Payout cadence", value: "On request" },
 ];
 

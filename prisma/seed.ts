@@ -46,6 +46,33 @@ const PLATFORM_DEFAULTS = [
   },
 ];
 
+const ADDON_DEFAULTS = [
+  {
+    slug: "priority-support",
+    name: "Priority Support",
+    description: "Skip the queue — faster response times from the support team.",
+    priceCents: 1900,
+    billing: "ONE_TIME" as const,
+    sortOrder: 1,
+  },
+  {
+    slug: "performance-analytics",
+    name: "Performance Analytics",
+    description: "Deeper trade breakdowns: drawdown curves, R-multiples, and session heatmaps.",
+    priceCents: 2900,
+    billing: "ONE_TIME" as const,
+    sortOrder: 2,
+  },
+  {
+    slug: "reset-protection",
+    name: "Reset Protection",
+    description: "One free challenge reset if you fail your first evaluation attempt.",
+    priceCents: 3900,
+    billing: "ONE_TIME" as const,
+    sortOrder: 3,
+  },
+];
+
 // One deliberately-unavailable combination so the availability engine has a
 // real case to demonstrate, matching the platform-availability spec: not
 // every (account size, platform) pair has to be allowed.
@@ -124,6 +151,19 @@ async function main() {
     }
   }
   console.log(`Created/updated ${platforms.length} trading platforms and their availability.`);
+
+  // ---------------------------------------------------------------------
+  // Add-ons (available for every account size by default — no
+  // AddonAvailability row means "allowed")
+  // ---------------------------------------------------------------------
+  for (const a of ADDON_DEFAULTS) {
+    await prisma.addon.upsert({
+      where: { slug: a.slug },
+      update: { name: a.name, description: a.description, priceCents: a.priceCents, sortOrder: a.sortOrder },
+      create: a,
+    });
+  }
+  console.log(`Created/updated ${ADDON_DEFAULTS.length} add-ons.`);
 
   // ---------------------------------------------------------------------
   // Coupon

@@ -19,6 +19,7 @@ export const checkoutSchema = z.object({
   templateId: z.string().min(1),
   couponCode: z.string().optional(),
   platformId: z.string().optional(),
+  addonIds: z.array(z.string().min(1)).max(20).optional(),
   agreedToRules: z.literal(true, {
     message: "You must agree to the Funded Trader Agreement and Trading Rules to continue.",
   }),

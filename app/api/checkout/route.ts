@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { templateId, couponCode, platformId } = parsed.data;
+  const { templateId, couponCode, platformId, addonIds } = parsed.data;
   const agreedAt = new Date();
 
   const template = await prisma.challengeTemplate.findUnique({ where: { id: templateId } });
@@ -54,6 +54,25 @@ export async function POST(req: NextRequest) {
     }
     platformFeeCents = availability?.feeCents ?? 0;
   }
+
+  // Add-ons are optional, but each one must actually be active and allowed
+  // for this template — never trust the frontend's list of what's on offer.
+  let addons: { id: string; priceCents: number }[] = [];
+  if (addonIds && addonIds.length > 0) {
+    const found = await prisma.addon.findMany({ where: { id: { in: addonIds }, active: true } });
+    if (found.length !== addonIds.length) {
+      return NextResponse.json({ error: "One or more selected add-ons are no longer available." }, { status: 400 });
+    }
+    const availabilityRows = await prisma.addonAvailability.findMany({
+      where: { templateId: template.id, addonId: { in: addonIds } },
+    });
+    const blocked = availabilityRows.find((a) => !a.allowed);
+    if (blocked) {
+      return NextResponse.json({ error: "One or more selected add-ons aren't available for this account size." }, { status: 400 });
+    }
+    addons = found.map((a) => ({ id: a.id, priceCents: a.priceCents }));
+  }
+  const addonTotalCents = addons.reduce((sum, a) => sum + a.priceCents, 0);
 
   let coupon = null;
   if (couponCode) {
@@ -86,9 +105,12 @@ export async function POST(req: NextRequest) {
       subtotalCents: priceCalc.subtotalCents,
       discountCents: priceCalc.discountCents,
       platformFeeCents,
-      totalCents: priceCalc.totalCents + platformFeeCents,
+      totalCents: priceCalc.totalCents + platformFeeCents + addonTotalCents,
       status: "PENDING",
       agreedToRulesAt: agreedAt,
+      addons: {
+        create: addons.map((a) => ({ addonId: a.id, priceCentsAtOrder: a.priceCents })),
+      },
     },
   });
 

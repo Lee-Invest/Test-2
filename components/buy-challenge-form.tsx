@@ -8,6 +8,7 @@ import { formatCents } from "@/lib/utils";
 import { STATIC_TEMPLATES, type StaticTemplate } from "@/lib/static-templates";
 import { RuleTooltip } from "@/components/rule-tooltip";
 import { PlatformSelector } from "@/components/platform-selector";
+import { AddonSelector } from "@/components/addon-selector";
 
 const roadmap = [
   {
@@ -23,7 +24,7 @@ const roadmap = [
   {
     icon: Wallet,
     title: "Funded & Paid",
-    body: "Trade a funded account and request payouts once you're eligible. You start at an 80% profit split, scaling up to 95% each time you get paid — and your evaluation fee is refunded 100% the moment you get funded.",
+    body: "Trade a funded account and request payouts once you're eligible — you keep your profit split of every withdrawal.",
   },
 ];
 
@@ -40,8 +41,26 @@ const included = [
   "2 Evaluation Phases",
   "Trading Dashboard",
   "Server-Verified Risk Engine",
-  "100% Fee Refund on Funding",
 ];
+
+const trustPoints = [
+  { icon: ShieldCheck, label: "Secure Checkout" },
+  { icon: Check, label: "Transparent Rules" },
+  { icon: Wallet, label: "Clear Pricing" },
+];
+
+interface SelectedAddon {
+  id: string;
+  name: string;
+  priceCents: number;
+}
+
+interface CouponPreview {
+  valid: boolean;
+  reason?: string;
+  discountCents?: number;
+  totalCents?: number;
+}
 
 export function BuyChallengeForm() {
   const templates = STATIC_TEMPLATES;
@@ -51,7 +70,10 @@ export function BuyChallengeForm() {
   );
   const [platformId, setPlatformId] = useState<string | null>(null);
   const [platformFeeCents, setPlatformFeeCents] = useState(0);
+  const [selectedAddons, setSelectedAddons] = useState<SelectedAddon[]>([]);
   const [couponCode, setCouponCode] = useState("");
+  const [couponPreview, setCouponPreview] = useState<CouponPreview | null>(null);
+  const [couponChecking, setCouponChecking] = useState(false);
   const agreeRef = useRef<HTMLInputElement>(null);
   const [showAgreeHint, setShowAgreeHint] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -80,10 +102,39 @@ export function BuyChallengeForm() {
   useEffect(() => {
     setPlatformId(null);
     setPlatformFeeCents(0);
+    setSelectedAddons([]);
+    setCouponPreview(null);
   }, [selectedId]);
 
   const selected = templates.find((t) => t.id === selectedId);
-  const totalCents = (selected?.priceCents ?? 0) + platformFeeCents;
+  const addonTotalCents = selectedAddons.reduce((sum, a) => sum + a.priceCents, 0);
+  const discountCents = couponPreview?.valid ? couponPreview.discountCents ?? 0 : 0;
+  const totalCents = (selected?.priceCents ?? 0) + platformFeeCents + addonTotalCents - discountCents;
+
+  async function checkCoupon() {
+    if (!selected || !couponCode.trim()) {
+      setCouponPreview(null);
+      return;
+    }
+    setCouponChecking(true);
+    try {
+      const res = await fetch(
+        `/api/coupons/validate?code=${encodeURIComponent(couponCode.trim())}&templateId=${selected.id}`
+      );
+      const data = await res.json().catch(() => null);
+      setCouponPreview(data ?? { valid: false, reason: "Could not check that code." });
+    } catch {
+      setCouponPreview({ valid: false, reason: "Could not reach the server." });
+    } finally {
+      setCouponChecking(false);
+    }
+  }
+
+  function toggleAddon(addon: { id: string; name: string; priceCents: number }) {
+    setSelectedAddons((prev) =>
+      prev.some((a) => a.id === addon.id) ? prev.filter((a) => a.id !== addon.id) : [...prev, addon]
+    );
+  }
 
   async function startCheckout() {
     if (!selected) return;
@@ -113,6 +164,7 @@ export function BuyChallengeForm() {
         body: JSON.stringify({
           templateId: selected.id,
           platformId: platformId ?? undefined,
+          addonIds: selectedAddons.length > 0 ? selectedAddons.map((a) => a.id) : undefined,
           couponCode: couponCode || undefined,
           agreedToRules: true,
         }),
@@ -164,8 +216,8 @@ export function BuyChallengeForm() {
               added by an admin without touching this UI, once a Program
               model backs this section). */}
           <StepHeader step={1} title="Choose your program" />
-          <div className="flex items-start gap-3 rounded-2xl border-2 border-[var(--brand-primary)] bg-[var(--brand-primary)]/10 p-4">
-            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white">
+          <div className="flex items-start gap-3 rounded-2xl border-2 border-[rgba(192,192,197,0.9)] bg-[rgba(192,192,197,0.15)] p-4">
+            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[rgba(140,140,148,0.9)] text-white">
               <Check size={12} />
             </div>
             <div>
@@ -197,7 +249,10 @@ export function BuyChallengeForm() {
               />
               <p className="mt-2 text-xs text-gray-500">You can change your platform before your first trade.</p>
 
-              <StepHeader step={4} title="Your challenge rules" className="mt-10" />
+              <StepHeader step={4} title="Add-ons (optional)" className="mt-10" />
+              <AddonSelector templateId={selected.id} selectedIds={selectedAddons.map((a) => a.id)} onToggle={toggleAddon} />
+
+              <StepHeader step={5} title="Your challenge rules" className="mt-10" />
               <div className="grid gap-4 sm:grid-cols-2">
                 <RuleCard label="Account Size" value={`$${selected.accountSize.toLocaleString()}`} />
                 <RuleCard label="Price" value={formatCents(selected.priceCents)} />
@@ -229,7 +284,7 @@ export function BuyChallengeForm() {
                 <RuleCard
                   label="Profit Split"
                   value={`${selected.profitSplitTraderPct}% to you`}
-                  explain={`Starts at ${selected.profitSplitTraderPct}% once funded, and scales up to 95% each time you get paid.`}
+                  explain={`Once funded, you keep ${selected.profitSplitTraderPct}% of the profits you withdraw.`}
                 />
               </div>
 
@@ -249,6 +304,15 @@ export function BuyChallengeForm() {
                   ))}
                 </div>
               </div>
+
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 rounded-2xl border border-white/40 bg-white/15 px-6 py-4">
+                {trustPoints.map((t) => (
+                  <div key={t.label} className="flex items-center gap-2 text-sm text-gray-600">
+                    <t.icon size={16} className="text-[var(--brand-accent)]" />
+                    {t.label}
+                  </div>
+                ))}
+              </div>
             </>
           )}
         </div>
@@ -263,13 +327,34 @@ export function BuyChallengeForm() {
                 <SummaryRow label="Account" value={`$${selected.accountSize.toLocaleString()}`} />
                 <SummaryRow label="Program" value="2-Step Evaluation" />
                 <SummaryRow label="Platform" value={platformId ? "Selected" : "Not chosen yet"} />
+                {selectedAddons.map((a) => (
+                  <SummaryRow key={a.id} label={a.name} value={formatCents(a.priceCents)} />
+                ))}
                 <div className="border-t border-gray-200 pt-2">
                   <SummaryRow label="Subtotal" value={formatCents(selected.priceCents)} />
                   {platformFeeCents > 0 && <SummaryRow label="Platform fee" value={`+${formatCents(platformFeeCents)}`} />}
+                  {addonTotalCents > 0 && <SummaryRow label="Add-ons" value={`+${formatCents(addonTotalCents)}`} />}
+                  {discountCents > 0 && (
+                    <SummaryRow label={`Discount (${couponCode.toUpperCase()})`} value={`-${formatCents(discountCents)}`} />
+                  )}
                 </div>
                 <div className="flex items-center justify-between border-t border-gray-200 pt-2 text-base font-bold text-gray-900">
                   <span>Total</span>
                   <span>{formatCents(totalCents)}</span>
+                </div>
+
+                <div className="border-t border-gray-200 pt-2 text-xs text-gray-500">
+                  Estimated First Payout{" "}
+                  <span className="font-semibold text-[var(--brand-accent)]">
+                    {formatCents(
+                      Math.round(
+                        selected.accountSize * 100 * (Number(selected.phase1ProfitTargetPct) / 100) * (Number(selected.profitSplitTraderPct) / 100)
+                      )
+                    )}
+                  </span>
+                  <p className="mt-0.5 text-[11px] text-gray-400">
+                    An example based on this configuration — not a guaranteed return.
+                  </p>
                 </div>
               </dl>
             ) : (
@@ -277,13 +362,31 @@ export function BuyChallengeForm() {
             )}
 
             <label className="mt-6 block text-xs text-gray-500">Coupon code (optional)</label>
-            <input
-              value={couponCode}
-              onChange={(e) => setCouponCode(e.target.value)}
-              placeholder="e.g. WELCOME10"
-              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[var(--brand-primary)]"
-            />
-            <p className="mt-1 text-[11px] text-gray-400">Discount is verified and applied server-side at checkout.</p>
+            <div className="mt-1 flex gap-2">
+              <input
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value);
+                  setCouponPreview(null);
+                }}
+                placeholder="e.g. WELCOME10"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[var(--brand-primary)]"
+              />
+              <button
+                type="button"
+                onClick={checkCoupon}
+                disabled={couponChecking || !couponCode.trim()}
+                className="shrink-0 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {couponChecking ? "…" : "Apply"}
+              </button>
+            </div>
+            {couponPreview && (
+              <p className={`mt-1 text-xs ${couponPreview.valid ? "text-[var(--brand-accent)]" : "text-red-600"}`}>
+                {couponPreview.valid ? `✓ ${couponCode.toUpperCase()} applied` : couponPreview.reason ?? "Invalid code."}
+              </p>
+            )}
+            <p className="mt-1 text-[11px] text-gray-400">Discount is verified and re-applied server-side at checkout.</p>
 
             <div className="mt-5 space-y-1.5">
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">What&rsquo;s included</div>
@@ -375,12 +478,12 @@ function SizeCard({
       aria-pressed={selected}
       className={`relative flex flex-col items-center gap-1 rounded-2xl border-2 px-4 py-5 text-center transition ${
         selected
-          ? "border-[var(--brand-primary)] bg-[var(--brand-primary)]/10"
+          ? "border-[rgba(192,192,197,0.9)] bg-[rgba(192,192,197,0.15)]"
           : "border-gray-200 bg-white hover:border-gray-300"
       }`}
     >
       {selected && (
-        <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white">
+        <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(140,140,148,0.9)] text-white">
           <Check size={12} />
         </div>
       )}

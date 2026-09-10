@@ -146,10 +146,11 @@ model ChallengeTemplate {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accounts     Account[]
-  coupons      Coupon[]
-  orders       Order[]
-  availability PlatformAvailability[]
+  accounts          Account[]
+  coupons           Coupon[]
+  orders            Order[]
+  availability      PlatformAvailability[]
+  addonAvailability AddonAvailability[]
 
   @@index([accountSize])
 }
@@ -191,6 +192,57 @@ model PlatformAvailability {
   unavailableReason String?
 
   @@unique([templateId, platformId])
+}
+
+enum AddonBilling {
+  ONE_TIME
+  MONTHLY
+}
+
+// An optional purchase add-on (VPS, priority support, etc). Price and
+// eligibility are fully admin-configurable — never assume an add-on applies
+// to every account size.
+model Addon {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  description String
+  priceCents  Int
+  billing     AddonBilling @default(ONE_TIME)
+  active      Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  availability AddonAvailability[]
+  orderAddons  OrderAddon[]
+}
+
+// Same pattern as PlatformAvailability: whether a given (template, addon)
+// combination can be purchased. Missing row = allowed by default.
+model AddonAvailability {
+  id         String            @id @default(cuid())
+  templateId String
+  template   ChallengeTemplate @relation(fields: [templateId], references: [id])
+  addonId    String
+  addon      Addon             @relation(fields: [addonId], references: [id])
+  allowed    Boolean           @default(true)
+
+  @@unique([templateId, addonId])
+}
+
+// Snapshot of an add-on chosen on an order, priced at time of purchase so a
+// later admin price change never retroactively changes a historical order.
+model OrderAddon {
+  id                String   @id @default(cuid())
+  orderId           String
+  order             Order    @relation(fields: [orderId], references: [id])
+  addonId           String
+  addon             Addon    @relation(fields: [addonId], references: [id])
+  priceCentsAtOrder Int
+  createdAt         DateTime @default(now())
+
+  @@unique([orderId, addonId])
 }
 
 model Coupon {
@@ -244,6 +296,7 @@ model Order {
 
   payment Payment?
   account Account?
+  addons  OrderAddon[]
 
   @@index([userId])
   @@index([status])
