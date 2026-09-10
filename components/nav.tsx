@@ -18,7 +18,7 @@ export function Nav() {
     <>
       <header className="fixed inset-x-0 top-0 z-40 border-b border-white/50 bg-gradient-to-r from-slate-300/40 via-white/50 to-slate-300/40 shadow-[0_8px_32px_rgba(31,38,135,0.12)] backdrop-blur-2xl">
         <span
-          className="pointer-events-none absolute left-2 top-1/2 hidden -translate-y-1/2 text-[9px] font-semibold uppercase leading-none tracking-[0.15em] sm:inline"
+          className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 text-xs font-semibold uppercase leading-none tracking-[0.12em] sm:inline"
           style={{ color: "rgba(180, 140, 70, 0.95)" }}
         >
           Built by traders, made for traders
