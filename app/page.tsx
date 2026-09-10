@@ -39,7 +39,7 @@ export default function Home() {
                 {branding.name} funds skilled traders who can demonstrate consistent, disciplined risk management
                 through a structured two-phase evaluation. Clear rules, transparent pricing, no guesswork.
               </p>
-              <div className="mt-8 flex gap-4">
+              <div className="mt-8 flex flex-wrap gap-4">
                 <Link
                   href="#choose-challenge"
                   className="rounded-full border px-6 py-3 text-sm font-semibold text-white shadow-[0_2px_10px_rgba(0,0,0,0.25)] backdrop-blur-xl"
