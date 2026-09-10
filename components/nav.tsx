@@ -17,7 +17,7 @@ export function Nav() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 overflow-hidden border-b border-white/30 bg-gradient-to-r from-slate-500/50 via-slate-300/55 to-slate-500/50 shadow-[0_8px_32px_rgba(31,38,135,0.18)] backdrop-blur-2xl">
+      <header className="fixed inset-x-0 top-0 z-40 overflow-hidden border-b border-white/50 bg-gradient-to-r from-slate-300/40 via-white/50 to-slate-300/40 shadow-[0_8px_32px_rgba(31,38,135,0.12)] backdrop-blur-2xl">
         <SkylineAccent />
         <SkylineAccent flip />
         <nav className="relative mx-auto flex max-w-6xl items-center justify-between px-8 py-3 sm:px-12">
