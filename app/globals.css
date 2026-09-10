@@ -11,8 +11,17 @@
 
 body {
   color: var(--foreground);
-  background: var(--background);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Soft, fixed color field so every "glass" surface (nav, cards, footer)
+     has something visible to blur/refract behind it, Apple-style. */
+  background-color: var(--background);
+  background-image:
+    radial-gradient(at 15% 10%, rgba(91, 78, 255, 0.16) 0px, transparent 55%),
+    radial-gradient(at 85% 15%, rgba(15, 157, 99, 0.14) 0px, transparent 55%),
+    radial-gradient(at 30% 80%, rgba(255, 149, 0, 0.10) 0px, transparent 50%),
+    radial-gradient(at 90% 85%, rgba(91, 78, 255, 0.12) 0px, transparent 50%);
+  background-attachment: fixed;
+  background-size: cover;
 }
 
 @layer utilities {

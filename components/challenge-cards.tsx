@@ -105,8 +105,8 @@ export function ChallengeCards() {
         return (
           <div
             key={t.id}
-            className={`relative flex flex-col rounded-2xl border p-5 pt-7 shadow-[0_8px_30px_rgba(0,0,0,0.06)] backdrop-blur-xl transition hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] ${
-              i === popularIdx ? "border-[var(--brand-primary)]/40 bg-white/70" : "border-gray-200/70 bg-white/50"
+            className={`relative flex flex-col rounded-2xl border p-5 pt-7 shadow-[0_8px_32px_rgba(31,38,135,0.1)] backdrop-blur-2xl transition hover:bg-white/30 ${
+              i === popularIdx ? "border-[var(--brand-primary)]/40 bg-white/25" : "border-white/40 bg-white/15"
             }`}
           >
             {i === popularIdx && (
@@ -128,7 +128,7 @@ export function ChallengeCards() {
             <button
               onClick={() => startChallenge(t.id)}
               disabled={loadingId === t.id}
-              className="mt-4 rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--brand-primary)]/20 hover:opacity-90 disabled:opacity-50"
+              className="mt-4 rounded-xl bg-[var(--brand-primary)]/90 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--brand-primary)]/20 backdrop-blur-xl hover:opacity-90 disabled:opacity-50"
             >
               {loadingId === t.id ? "Starting…" : "Start Now"}
             </button>
@@ -138,7 +138,7 @@ export function ChallengeCards() {
               <span className="font-semibold text-[var(--brand-accent)]">{formatCents(estCents)}</span>
             </div>
 
-            <dl className="mt-5 space-y-3 border-t border-gray-200/70 pt-4 text-xs">
+            <dl className="mt-5 space-y-3 border-t border-white/40 pt-4 text-xs">
               {rows.map((row) => (
                 <div key={row.label} className="flex items-center justify-between gap-2">
                   <dt className="flex min-w-0 items-center gap-1.5 text-gray-500">

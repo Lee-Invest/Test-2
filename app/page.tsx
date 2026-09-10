@@ -37,30 +37,30 @@ export default function Home() {
             <div className="mt-8 flex gap-4">
               <Link
                 href="/pricing"
-                className="rounded-md bg-[var(--brand-primary)] px-6 py-3 text-sm font-semibold text-white hover:opacity-90"
+                className="rounded-full bg-[var(--brand-primary)]/90 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl hover:opacity-90"
               >
                 View Challenges
               </Link>
               <Link
                 href="/how-it-works"
-                className="rounded-md border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50"
+                className="rounded-full border border-white/50 bg-white/20 px-6 py-3 text-sm font-semibold text-gray-900 backdrop-blur-xl hover:bg-white/40"
               >
                 How It Works
               </Link>
             </div>
           </div>
 
-          <div className="mt-16 grid grid-cols-2 gap-6 border-t border-gray-200 pt-10 sm:grid-cols-4">
+          <div className="mt-16 grid grid-cols-2 gap-4 rounded-2xl border border-white/40 bg-white/15 p-6 shadow-[0_8px_32px_rgba(31,38,135,0.08)] backdrop-blur-2xl sm:grid-cols-4">
             {stats.map((s) => (
               <div key={s.label}>
                 <div className="text-2xl font-bold text-gray-900">{s.value}</div>
-                <div className="text-sm text-gray-500">{s.label}</div>
+                <div className="text-sm text-gray-600">{s.label}</div>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="border-t border-gray-200 py-16">
+        <section className="py-16">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <h2 className="text-center text-2xl font-bold text-gray-900">Choose your challenge</h2>
             <p className="mx-auto mt-2 max-w-xl text-center text-gray-600">
@@ -72,12 +72,15 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="border-t border-gray-200 bg-gray-50 py-20">
+        <section className="py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <h2 className="text-2xl font-bold text-gray-900">Three steps to a funded account</h2>
-            <div className="mt-10 grid gap-8 sm:grid-cols-3">
+            <div className="mt-10 grid gap-6 sm:grid-cols-3">
               {steps.map((step, i) => (
-                <div key={step.title} className="rounded-xl border border-gray-200 bg-white p-6">
+                <div
+                  key={step.title}
+                  className="rounded-2xl border border-white/40 bg-white/15 p-6 shadow-[0_8px_32px_rgba(31,38,135,0.08)] backdrop-blur-2xl"
+                >
                   <div className="text-sm font-semibold text-[var(--brand-accent)]">Step {i + 1}</div>
                   <div className="mt-2 text-lg font-semibold text-gray-900">{step.title}</div>
                   <p className="mt-2 text-sm text-gray-600">{step.body}</p>
@@ -88,17 +91,19 @@ export default function Home() {
         </section>
 
         <section className="mx-auto max-w-6xl px-4 py-20 text-center sm:px-6">
-          <h2 className="text-2xl font-bold text-gray-900">Ready to prove your edge?</h2>
-          <p className="mx-auto mt-3 max-w-xl text-gray-600">
-            Every challenge rule — profit targets, drawdown limits, minimum trading days, and profit split — is
-            transparent and configured the same way for every trader.
-          </p>
-          <Link
-            href="/pricing"
-            className="mt-6 inline-block rounded-md bg-[var(--brand-primary)] px-6 py-3 text-sm font-semibold text-white hover:opacity-90"
-          >
-            Choose Your Account Size
-          </Link>
+          <div className="mx-auto max-w-2xl rounded-2xl border border-white/40 bg-white/15 p-10 shadow-[0_8px_32px_rgba(31,38,135,0.08)] backdrop-blur-2xl">
+            <h2 className="text-2xl font-bold text-gray-900">Ready to prove your edge?</h2>
+            <p className="mx-auto mt-3 max-w-xl text-gray-600">
+              Every challenge rule — profit targets, drawdown limits, minimum trading days, and profit split — is
+              transparent and configured the same way for every trader.
+            </p>
+            <Link
+              href="/pricing"
+              className="mt-6 inline-block rounded-full bg-[var(--brand-primary)]/90 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl hover:opacity-90"
+            >
+              Choose Your Account Size
+            </Link>
+          </div>
         </section>
       </main>
       <Footer />
