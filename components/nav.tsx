@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { branding } from "@/lib/branding";
+import { SkylineAccent } from "@/components/skyline-accent";
 
 const links = [
   { href: "/pricing", label: "Challenges" },
@@ -16,8 +17,10 @@ export function Nav() {
 
   return (
     <div className="sticky top-3 z-40 mx-auto max-w-6xl px-3 sm:px-6">
-      <header className="rounded-2xl border border-white/40 bg-white/20 shadow-[0_8px_32px_rgba(31,38,135,0.1)] backdrop-blur-2xl">
-        <nav className="flex items-center justify-between px-4 py-3 sm:px-6">
+      <header className="relative overflow-hidden rounded-2xl border border-white/50 bg-gradient-to-r from-slate-300/40 via-white/50 to-slate-300/40 shadow-[0_8px_32px_rgba(31,38,135,0.12)] backdrop-blur-2xl">
+        <SkylineAccent />
+        <SkylineAccent flip />
+        <nav className="relative flex items-center justify-between px-8 py-3 sm:px-12">
           <Link href="/" className="text-lg font-bold tracking-tight text-gray-900">
             {branding.name}
           </Link>
