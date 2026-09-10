@@ -119,9 +119,9 @@ export default function DashboardPage() {
     <>
       <Nav />
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <h1 className="text-3xl font-bold text-white">Trader Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Trader Dashboard</h1>
 
-        <div className="mt-6 flex gap-2 border-b border-white/10">
+        <div className="mt-6 flex gap-2 border-b border-gray-200">
           <TabButton active={tab === "overview"} onClick={() => setTab("overview")}>
             Overview
           </TabButton>
@@ -144,11 +144,11 @@ export default function DashboardPage() {
             )}
 
             {accounts?.map((account) => (
-              <section key={account.id} className="mt-8 rounded-xl border border-white/10 bg-black/40 p-6 shadow-sm">
+              <section key={account.id} className="mt-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <div className="text-sm text-gray-500">${account.accountSize.toLocaleString()} Account</div>
-                    <div className="text-2xl font-bold text-white">{formatCents(account.currentEquityCents)}</div>
+                    <div className="text-2xl font-bold text-gray-900">{formatCents(account.currentEquityCents)}</div>
                   </div>
                   <PhaseTracker current={account.currentPhase?.type ?? "PHASE_1"} />
                 </div>
@@ -219,18 +219,18 @@ export default function DashboardPage() {
 
                 <div className="mt-8">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="font-semibold text-white">Trade History</h3>
+                    <h3 className="font-semibold text-gray-900">Trade History</h3>
                     <div className="flex gap-2">
                       <input
                         placeholder="Filter symbol…"
                         value={filterSymbol}
                         onChange={(e) => setFilterSymbol(e.target.value)}
-                        className="rounded-md border border-white/15 bg-black/40 px-2 py-1 text-xs text-white"
+                        className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900"
                       />
                       <select
                         value={filterSide}
                         onChange={(e) => setFilterSide(e.target.value)}
-                        className="rounded-md border border-white/15 bg-black/40 px-2 py-1 text-xs text-white"
+                        className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900"
                       >
                         <option value="ALL">All sides</option>
                         <option value="LONG">Long</option>
@@ -240,7 +240,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="mt-3 overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                      <thead className="text-gray-500">
+                      <thead className="text-gray-400">
                         <tr>
                           <th className="py-2 pr-4">Symbol</th>
                           <th className="py-2 pr-4">Side</th>
@@ -254,11 +254,11 @@ export default function DashboardPage() {
                           .filter((t) => filterSide === "ALL" || t.side === filterSide)
                           .filter((t) => !filterSymbol || t.symbol.toLowerCase().includes(filterSymbol.toLowerCase()))
                           .map((t) => (
-                            <tr key={t.id} className="border-t border-white/5">
-                              <td className="py-2 pr-4 text-white">{t.symbol}</td>
-                              <td className="py-2 pr-4 text-white">{t.side}</td>
-                              <td className="py-2 pr-4 text-white">{new Date(t.openedAt).toLocaleDateString()}</td>
-                              <td className="py-2 pr-4 text-white">
+                            <tr key={t.id} className="border-t border-gray-100">
+                              <td className="py-2 pr-4 text-gray-900">{t.symbol}</td>
+                              <td className="py-2 pr-4 text-gray-900">{t.side}</td>
+                              <td className="py-2 pr-4 text-gray-900">{new Date(t.openedAt).toLocaleDateString()}</td>
+                              <td className="py-2 pr-4 text-gray-900">
                                 {t.closedAt ? new Date(t.closedAt).toLocaleDateString() : "Open"}
                               </td>
                               <td className={`py-2 pr-4 ${t.pnlCents !== null && t.pnlCents < 0 ? "text-red-600" : "text-green-600"}`}>
@@ -276,9 +276,9 @@ export default function DashboardPage() {
         )}
 
         {tab === "payouts" && (
-          <section className="mt-8 rounded-xl border border-white/10 bg-black/40 p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-white">Payout History</h2>
-            {payoutMessage && <p className="mt-2 text-sm text-gray-300">{payoutMessage}</p>}
+          <section className="mt-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900">Payout History</h2>
+            {payoutMessage && <p className="mt-2 text-sm text-gray-600">{payoutMessage}</p>}
 
             {payouts === null && <p className="mt-4 text-gray-500">Loading…</p>}
             {payouts?.length === 0 && (
@@ -291,7 +291,7 @@ export default function DashboardPage() {
             {payouts && payouts.length > 0 && (
               <div className="mt-4 overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="text-gray-500">
+                  <thead className="text-gray-400">
                     <tr>
                       <th className="py-2 pr-4">Account</th>
                       <th className="py-2 pr-4">Requested</th>
@@ -303,13 +303,13 @@ export default function DashboardPage() {
                   </thead>
                   <tbody>
                     {payouts.map((p) => (
-                      <tr key={p.id} className="border-t border-white/5">
-                        <td className="py-2 pr-4 text-white">${p.account.template.accountSize.toLocaleString()}</td>
-                        <td className="py-2 pr-4 text-white">{new Date(p.requestedAt).toLocaleDateString()}</td>
-                        <td className="py-2 pr-4 font-semibold text-white">{formatCents(p.traderShareCents)}</td>
+                      <tr key={p.id} className="border-t border-gray-100">
+                        <td className="py-2 pr-4 text-gray-900">${p.account.template.accountSize.toLocaleString()}</td>
+                        <td className="py-2 pr-4 text-gray-900">{new Date(p.requestedAt).toLocaleDateString()}</td>
+                        <td className="py-2 pr-4 font-semibold text-gray-900">{formatCents(p.traderShareCents)}</td>
                         <td className="py-2 pr-4 text-gray-500">{formatCents(p.firmShareCents)}</td>
                         <td className="py-2 pr-4">
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${PAYOUT_STATUS_STYLE[p.status] ?? "bg-white/10 text-gray-200"}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${PAYOUT_STATUS_STYLE[p.status] ?? "bg-gray-100 text-gray-700"}`}>
                             {p.status}
                           </span>
                         </td>
@@ -334,7 +334,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       onClick={onClick}
       className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
-        active ? "border-[var(--brand-primary)] text-white" : "border-transparent text-gray-500 hover:text-white"
+        active ? "border-[var(--brand-primary)] text-gray-900" : "border-transparent text-gray-500 hover:text-gray-900"
       }`}
     >
       {children}
@@ -344,9 +344,9 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-black/40 p-4">
-      <div className="text-xs uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-white">{value}</div>
+    <div className="rounded-lg border border-gray-200 bg-white p-4">
+      <div className="text-xs uppercase tracking-wide text-gray-400">{label}</div>
+      <div className="mt-1 text-lg font-semibold text-gray-900">{value}</div>
     </div>
   );
 }
@@ -365,12 +365,12 @@ function RiskBar({
   const total = usedPct + remainingPct || 1;
   const pct = Math.min(100, (usedPct / total) * 100);
   return (
-    <div className="rounded-lg border border-white/10 bg-black/40 p-4">
+    <div className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="flex justify-between text-xs text-gray-500">
         <span>{label}</span>
         <span className={breached ? "text-red-600 font-semibold" : ""}>{usedPct}% used</span>
       </div>
-      <div className="mt-2 h-2 w-full rounded-full bg-white/10">
+      <div className="mt-2 h-2 w-full rounded-full bg-gray-100">
         <div
           className={`h-2 rounded-full ${breached ? "bg-red-500" : "bg-[var(--brand-accent)]"}`}
           style={{ width: `${pct}%` }}
@@ -388,7 +388,7 @@ function PhaseTracker({ current }: { current: string }) {
         <div key={p} className="flex items-center gap-2">
           <div
             className={`rounded-full px-3 py-1 font-semibold ${
-              i <= idx ? "bg-[var(--brand-primary)] text-white" : "bg-white/10 text-gray-500"
+              i <= idx ? "bg-[var(--brand-primary)] text-white" : "bg-gray-100 text-gray-400"
             }`}
           >
             {p.replace("_", " ")}

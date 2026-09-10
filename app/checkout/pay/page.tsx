@@ -83,7 +83,7 @@ function SimulatedPaymentForm() {
       <>
         <Nav />
         <main className="mx-auto max-w-md px-4 py-24 text-center sm:px-6">
-          <p className="text-gray-300">Missing order. Start again from the pricing page.</p>
+          <p className="text-gray-600">Missing order. Start again from the pricing page.</p>
         </main>
         <Footer />
       </>
@@ -101,13 +101,13 @@ function SimulatedPaymentForm() {
           webhook would.
         </div>
 
-        <div className="rounded-lg border border-white/10 bg-black/40 p-6 shadow-sm">
-          <h1 className="text-lg font-semibold text-white">Complete your payment</h1>
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <h1 className="text-lg font-semibold text-gray-900">Complete your payment</h1>
 
           {order ? (
-            <div className="mt-4 flex items-center justify-between border-b border-white/10 pb-4 text-sm">
-              <span className="text-gray-300">{order.templateName}</span>
-              <span className="font-semibold text-white">{formatCents(order.totalCents)}</span>
+            <div className="mt-4 flex items-center justify-between border-b border-gray-200 pb-4 text-sm">
+              <span className="text-gray-600">{order.templateName}</span>
+              <span className="font-semibold text-gray-900">{formatCents(order.totalCents)}</span>
             </div>
           ) : (
             <p className="mt-4 text-sm text-gray-500">Loading order…</p>
@@ -115,47 +115,47 @@ function SimulatedPaymentForm() {
 
           <form onSubmit={handlePay} className="mt-6 space-y-4">
             <div>
-              <label className="mb-1 block text-xs text-gray-300">Cardholder name</label>
+              <label className="mb-1 block text-xs text-gray-600">Cardholder name</label>
               <input
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Jane Trader"
-                className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-[var(--brand-primary)]"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[var(--brand-primary)]"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-300">Card number</label>
+              <label className="mb-1 block text-xs text-gray-600">Card number</label>
               <input
                 required
                 value={cardNumber}
                 onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
                 placeholder="4242 4242 4242 4242"
                 inputMode="numeric"
-                className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm font-mono text-white outline-none focus:border-[var(--brand-primary)]"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-mono text-gray-900 outline-none focus:border-[var(--brand-primary)]"
               />
             </div>
             <div className="flex gap-4">
               <div className="flex-1">
-                <label className="mb-1 block text-xs text-gray-300">Expiry</label>
+                <label className="mb-1 block text-xs text-gray-600">Expiry</label>
                 <input
                   required
                   value={expiry}
                   onChange={(e) => setExpiry(formatExpiry(e.target.value))}
                   placeholder="MM/YY"
                   inputMode="numeric"
-                  className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm font-mono text-white outline-none focus:border-[var(--brand-primary)]"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-mono text-gray-900 outline-none focus:border-[var(--brand-primary)]"
                 />
               </div>
               <div className="flex-1">
-                <label className="mb-1 block text-xs text-gray-300">CVC</label>
+                <label className="mb-1 block text-xs text-gray-600">CVC</label>
                 <input
                   required
                   value={cvc}
                   onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="123"
                   inputMode="numeric"
-                  className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm font-mono text-white outline-none focus:border-[var(--brand-primary)]"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-mono text-gray-900 outline-none focus:border-[var(--brand-primary)]"
                 />
               </div>
             </div>

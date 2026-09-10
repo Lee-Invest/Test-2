@@ -31,9 +31,9 @@ function ResetForm() {
 
   return (
     <main className="mx-auto flex max-w-md flex-col px-4 py-20 sm:px-6">
-      <h1 className="text-2xl font-bold text-white">Set a new password</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Set a new password</h1>
       {done ? (
-        <p className="mt-6 text-gray-300">Password updated. Redirecting to login…</p>
+        <p className="mt-6 text-gray-600">Password updated. Redirecting to login…</p>
       ) : (
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
           <input
@@ -43,7 +43,7 @@ function ResetForm() {
             placeholder="New password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 text-white outline-none focus:border-[var(--brand-primary)]"
+            className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-[var(--brand-primary)]"
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button className="w-full rounded-md bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90">

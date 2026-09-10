@@ -7,8 +7,8 @@ export default function CheckoutSuccessPage() {
     <>
       <Nav />
       <main className="mx-auto max-w-xl px-4 py-24 text-center sm:px-6">
-        <h1 className="text-3xl font-bold text-white">Payment received</h1>
-        <p className="mt-4 text-gray-300">
+        <h1 className="text-3xl font-bold text-gray-900">Payment received</h1>
+        <p className="mt-4 text-gray-600">
           Thanks for starting your challenge. Your Phase 1 account has been created and is ready
           on your dashboard.
         </p>
