@@ -3,33 +3,55 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-// Read-only diagnostic endpoint: checks that every table/column this app
-// depends on actually exists and is queryable in the live database, so a
-// missing migration shows up as a clear named error instead of a silent
-// "nothing happens" on register/login/checkout. Gated by a shared secret
-// (DEBUG_HEALTH_SECRET) so it can't be scraped by randoms; falls back to
-// requiring the NEXTAUTH_SECRET if the dedicated one isn't set.
+// Read-only diagnostic endpoint, at an unguessable path, gated by
+// NEXTAUTH_SECRET. Every previous attempt at the ?secret= comparison
+// returned "Unauthorized" no matter what was pasted in — the likely cause:
+// URLSearchParams (used by req.nextUrl.searchParams) decodes "+" as a
+// literal space per the application/x-www-form-urlencoded convention, so a
+// secret containing "+" (common in a base64-ish NEXTAUTH_SECRET) silently
+// never matched when pasted raw into a browser address bar. Parsing the
+// query string manually here instead preserves "+" literally.
+function getRawQueryParam(req: NextRequest, key: string): string | null {
+  const query = req.nextUrl.search.replace(/^\?/, "");
+  for (const pair of query.split("&")) {
+    const [k, ...rest] = pair.split("=");
+    if (decodeURIComponent(k) === key) {
+      return decodeURIComponent(rest.join("="));
+    }
+  }
+  return null;
+}
+
 export async function GET(req: NextRequest) {
-  const secret = process.env.DEBUG_HEALTH_SECRET ?? process.env.NEXTAUTH_SECRET;
-  const provided = req.nextUrl.searchParams.get("secret");
+  // A dedicated, low-stakes debug token — deliberately NOT the real
+  // NEXTAUTH_SECRET, since that's a live credential that shouldn't be
+  // pasted into a URL. Set DEBUG_HEALTH_SECRET in Vercel to any string of
+  // your choosing (letters/digits only, to sidestep query-string escaping
+  // entirely) and redeploy.
+  const secret = process.env.DEBUG_HEALTH_SECRET;
+  const provided = getRawQueryParam(req, "secret")?.trim();
   if (!secret) {
     return NextResponse.json(
-      { error: "NEXTAUTH_SECRET is not set in this environment — that alone would break login." },
+      { error: "Set a DEBUG_HEALTH_SECRET environment variable in Vercel and redeploy to use this endpoint." },
       { status: 500 }
     );
   }
-  if (provided !== secret) {
+  if (provided !== secret.trim()) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const checks: Record<string, { ok: boolean; detail?: string }> = {};
+
+  function scrub(message: string) {
+    return message.replace(/postgres(?:ql)?:\/\/[^\s"']+/gi, "postgres://[redacted]");
+  }
 
   async function check(name: string, fn: () => Promise<unknown>) {
     try {
       await fn();
       checks[name] = { ok: true };
     } catch (err) {
-      checks[name] = { ok: false, detail: err instanceof Error ? err.message : String(err) };
+      checks[name] = { ok: false, detail: scrub(err instanceof Error ? err.message : String(err)) };
     }
   }
 
