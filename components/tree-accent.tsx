@@ -13,8 +13,8 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
     <>
       <div
         aria-hidden
-        className={`pointer-events-none absolute z-20 hidden overflow-hidden lg:block ${
-          isRight ? "right-0 inset-y-0 w-[24rem] xl:w-[32rem]" : "left-0 inset-y-0 w-80 xl:w-[30rem]"
+        className={`pointer-events-none absolute z-20 hidden overflow-hidden 3xl:block ${
+          isRight ? "right-0 inset-y-0 w-40 3xl:w-56" : "left-0 inset-y-0 w-40 3xl:w-56"
         }`}
         style={{
           WebkitMaskImage: `linear-gradient(to ${isRight ? "left" : "right"}, black 85%, transparent 100%)`,
@@ -42,7 +42,7 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
 
       <div
         aria-hidden
-        className={`pointer-events-none absolute top-6 z-30 hidden max-w-[15rem] text-sm font-semibold italic leading-snug tracking-wide lg:block ${
+        className={`pointer-events-none absolute top-6 z-30 hidden max-w-[15rem] text-sm font-semibold italic leading-snug tracking-wide 3xl:block ${
           isRight ? "right-6" : "left-6"
         }`}
         style={{ color: "#ffffff", textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}
