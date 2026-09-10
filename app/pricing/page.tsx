@@ -1,11 +1,52 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { applyCoupon } from "@/lib/risk-engine";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { formatCents } from "@/lib/utils";
 import { STATIC_TEMPLATES } from "@/lib/static-templates";
 import { STATIC_PLATFORMS, STATIC_PLATFORM_AVAILABILITY } from "@/lib/static-platforms";
 import { ConfiguratorClient } from "@/components/configurator-client";
+
+const WHATS_INCLUDED = [
+  "2 Evaluation Phases",
+  "Trading Dashboard",
+  "Risk Monitoring",
+  "Performance Analytics",
+  "Trader Academy",
+];
+
+const FAQS = [
+  {
+    q: "Which platform should I choose?",
+    a: "MetaTrader 5 covers the most instruments and full algorithmic support. MetaTrader 4 is the simplest and most widely supported by third-party tools. cTrader and Match-Trader are fully browser-capable if you don't want to install anything.",
+  },
+  {
+    q: "Can I change platforms after purchase?",
+    a: "Your platform is tied to your account for the length of the evaluation. Contact support if you need to discuss switching.",
+  },
+  {
+    q: "What happens after I pass?",
+    a: "Passing Phase 1 moves you to Phase 2 with the same starting balance. Passing Phase 2 moves you to a funded account under the profit split shown above.",
+  },
+  {
+    q: "When can I request a payout?",
+    a: "Once your account is funded, eligible payouts appear on your dashboard's Payouts tab based on the minimum payout amount and payout cycle for your account size.",
+  },
+  {
+    q: "What are the drawdown rules?",
+    a: "Every account has a maximum daily loss and a maximum overall loss, both shown above and re-checked automatically on every trade.",
+  },
+  {
+    q: "Are there time limits?",
+    a: "There's no maximum time limit to pass a phase, only a minimum number of trading days, shown above.",
+  },
+  {
+    q: "What payment methods are available?",
+    a: "Available payment methods are shown at checkout and depend on what's currently enabled for your region.",
+  },
+];
 
 // Server-rendered "Build Your Challenge" configurator. Everything a trader
 // needs to complete a purchase — pick a size, pick a platform, agree to the
@@ -33,7 +74,34 @@ export default async function BuyChallengePage({
     ? STATIC_PLATFORM_AVAILABILITY.find((a) => a.templateId === selected.id && a.platformId === platformId)
     : undefined;
   const platformFeeCents = !platformAvail || platformAvail.allowed ? platformAvail?.feeCents ?? 0 : 0;
-  const totalCents = selected.priceCents + platformFeeCents;
+
+  // Live discount preview only — /api/checkout re-runs this exact same
+  // applyCoupon() logic authoritatively at purchase time, so this can never
+  // be used to manipulate the final price actually charged.
+  let discountCents = 0;
+  let couponError: string | null = null;
+  if (couponCode) {
+    const coupon = await prisma.coupon.findUnique({ where: { code: couponCode.toUpperCase() } });
+    const calc = applyCoupon(
+      selected.priceCents,
+      coupon && (!coupon.templateId || coupon.templateId === selected.id)
+        ? {
+            type: coupon.type,
+            value: Number(coupon.value),
+            active: coupon.active,
+            expiresAt: coupon.expiresAt,
+            maxRedemptions: coupon.maxRedemptions,
+            timesRedeemed: coupon.timesRedeemed,
+          }
+        : null
+    );
+    if (calc.couponValid) {
+      discountCents = calc.discountCents;
+    } else {
+      couponError = coupon ? calc.reason ?? "Coupon not valid." : "Coupon not found.";
+    }
+  }
+  const totalCents = selected.priceCents - discountCents + platformFeeCents;
 
   return (
     <>
@@ -102,6 +170,7 @@ export default async function BuyChallengePage({
                   data-role="size-selector"
                   className="grid grid-cols-2 gap-3 sm:grid-cols-5"
                 >
+                  <input type="hidden" name="coupon" value={couponCode} />
                   {templates.map((t) => (
                     <label
                       key={t.id}
@@ -242,6 +311,34 @@ export default async function BuyChallengePage({
 
               <ComparePlatforms platforms={STATIC_PLATFORMS} />
             </Section>
+
+            <Section step={4} title="Coupon code">
+              <form method="GET" action="/pricing" className="flex flex-col gap-3 sm:flex-row">
+                <input type="hidden" name="template" value={selected.id} />
+                {platformId && <input type="hidden" name="platform" value={platformId} />}
+                <input
+                  name="coupon"
+                  defaultValue={couponCode}
+                  placeholder="Enter a coupon code (optional)"
+                  className="flex-1 rounded-xl border border-white/60 bg-white/70 px-3 py-2.5 text-sm text-gray-900 shadow-sm outline-none backdrop-blur-xl focus:border-[var(--brand-primary)]"
+                />
+                <button
+                  type="submit"
+                  className="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Apply
+                </button>
+              </form>
+              {couponCode && couponError && <p className="mt-2 text-xs text-red-600">{couponError}</p>}
+              {couponCode && !couponError && (
+                <p className="mt-2 text-xs text-green-700">
+                  Coupon applied — {formatCents(discountCents)} off.
+                </p>
+              )}
+            </Section>
+
+            <TrustSection />
+            <FaqSection />
           </div>
 
           {/* RIGHT — sticky order summary (desktop) / sticky bottom bar (mobile) */}
@@ -250,8 +347,10 @@ export default async function BuyChallengePage({
             platformId={platformId}
             platforms={executionPlatforms}
             platformFeeCents={platformFeeCents}
-            totalCents={totalCents}
+            discountCents={discountCents}
             couponCode={couponCode}
+            couponError={couponError}
+            totalCents={totalCents}
             loggedIn={Boolean(session?.user)}
           />
         </div>
@@ -385,79 +484,85 @@ function OrderSummary({
   platformId,
   platforms,
   platformFeeCents,
-  totalCents,
+  discountCents,
   couponCode,
+  couponError,
+  totalCents,
   loggedIn,
 }: {
   selected: (typeof STATIC_TEMPLATES)[number];
   platformId: string;
   platforms: typeof STATIC_PLATFORMS;
   platformFeeCents: number;
-  totalCents: number;
+  discountCents: number;
   couponCode: string;
+  couponError: string | null;
+  totalCents: number;
   loggedIn: boolean;
 }) {
   const platform = platforms.find((p) => p.id === platformId);
+  const couponApplied = Boolean(couponCode) && !couponError;
+  // Illustrative only — see the disclaimer below. Based on hitting the
+  // Phase 2 profit target on the chosen account size at an 80% split.
+  const estimatedPayoutCents = Math.round(selected.accountSize * 100 * (Number(selected.phase2ProfitTargetPct) / 100) * 0.8);
 
   return (
     <aside
       data-role="order-summary"
       className="lg:sticky lg:top-24 fixed inset-x-0 bottom-0 z-30 rounded-t-3xl border-t border-white/60 bg-white/90 p-5 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur-2xl lg:static lg:rounded-3xl lg:border lg:border-white/60 lg:p-6 lg:shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_30px_rgba(15,23,42,0.06)]"
     >
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-400">Order Summary</h3>
+      <h3 className="text-lg font-semibold tracking-tight text-gray-900">Your Challenge</h3>
 
-      <div className="mt-3 space-y-2 text-sm">
-        <div className="flex justify-between">
-          <span className="text-gray-500">Account size</span>
-          <span className="font-medium text-gray-900" data-field="summary-size">
-            ${selected.accountSize.toLocaleString()}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">Platform</span>
-          <span className="font-medium text-gray-900" data-field="summary-platform">
-            {platform ? platform.name : "No preference"}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">Evaluation fee</span>
-          <span className="font-medium text-gray-900" data-field="summary-fee">
-            {formatCents(selected.priceCents)}
-          </span>
-        </div>
+      <div className="mt-4 space-y-2 text-sm">
+        <SummaryRow label="Account" value={`$${selected.accountSize.toLocaleString()}`} field="summary-size" />
+        <SummaryRow label="Program" value="2-Step" field="summary-program" />
+        <SummaryRow label="Platform" value={platform ? platform.name : "No preference"} field="summary-platform" />
+        <SummaryRow label="Add-ons" value="None" field="summary-addons" />
+      </div>
+
+      <div className="mt-4 space-y-2 border-t border-gray-200 pt-4 text-sm">
+        <SummaryRow label="Subtotal" value={formatCents(selected.priceCents)} field="summary-subtotal" />
         {platformFeeCents > 0 && (
-          <div className="flex justify-between" data-field="summary-platform-fee-row">
-            <span className="text-gray-500">Platform fee</span>
-            <span className="font-medium text-gray-900" data-field="summary-platform-fee">
-              {formatCents(platformFeeCents)}
-            </span>
-          </div>
+          <SummaryRow label="Platform fee" value={formatCents(platformFeeCents)} field="summary-platform-fee" />
         )}
-        <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500">
-          Estimated first payout at 80% split, hitting both profit targets:{" "}
-          <span className="font-semibold text-gray-700" data-field="summary-est-payout">
-            {formatCents(Math.round(((selected.accountSize * 100) * Number(selected.phase2ProfitTargetPct)) / 100 * 0.8))}
-          </span>
-        </div>
+        {couponApplied && (
+          <SummaryRow label="Discount" value={`-${formatCents(discountCents)}`} field="summary-discount" negative />
+        )}
       </div>
 
       <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-        <span className="text-sm text-gray-600">Total due today</span>
+        <span className="text-sm text-gray-600">Total</span>
         <span className="text-2xl font-bold text-gray-900" data-field="summary-total">
           {formatCents(totalCents)}
         </span>
       </div>
 
-      <form action="/api/checkout" method="POST" className="mt-4 space-y-3">
+      <div className="mt-4 rounded-xl bg-gray-50 p-3">
+        <div className="text-xs uppercase tracking-wide text-gray-400">Estimated First Payout</div>
+        <div className="mt-1 text-xl font-bold text-gray-900" data-field="summary-est-payout">
+          {formatCents(estimatedPayoutCents)}
+        </div>
+        <p className="mt-1 text-[11px] leading-snug text-gray-500">
+          Example only, based on this account size, an 80% profit split, and reaching the Phase 2 profit target.
+          Not a guarantee of profit or payout — actual results depend entirely on your trading.
+        </p>
+      </div>
+
+      <div className="mt-4 border-t border-gray-200 pt-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">What&apos;s included</div>
+        <ul className="mt-2 space-y-1.5 text-sm text-gray-700">
+          {WHATS_INCLUDED.map((item) => (
+            <li key={item} className="flex items-center gap-2">
+              <span className="text-[var(--brand-primary)]">✓</span> {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <form action="/api/checkout" method="POST" className="mt-4 space-y-3 border-t border-gray-200 pt-4">
         <input type="hidden" name="templateId" value={selected.id} />
         {platformId && <input type="hidden" name="platformId" value={platformId} />}
-
-        <input
-          name="couponCode"
-          defaultValue={couponCode}
-          placeholder="Coupon code (optional)"
-          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[var(--brand-primary)]"
-        />
+        {couponApplied && <input type="hidden" name="couponCode" value={couponCode} />}
 
         <label className="flex items-start gap-2 rounded-md p-1 text-xs text-gray-700">
           <input required name="agreedToRules" type="checkbox" className="mt-0.5 h-4 w-4 rounded border-gray-300" />
@@ -489,5 +594,61 @@ function OrderSummary({
         )}
       </form>
     </aside>
+  );
+}
+
+function SummaryRow({ label, value, field, negative }: { label: string; value: string; field: string; negative?: boolean }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-gray-500">{label}</span>
+      <span className={`font-medium ${negative ? "text-green-700" : "text-gray-900"}`} data-field={field}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function TrustSection() {
+  const items = [
+    { title: "Secure Checkout", body: "Encrypted end to end, every purchase re-verified server-side.", icon: "🔒" },
+    { title: "Transparent Rules", body: "Every limit and target is shown before you pay — no fine print.", icon: "📄" },
+    { title: "Clear Pricing", body: "The price you see is the price you pay. No hidden fees.", icon: "💳" },
+    { title: "24/7 Support", body: "A real person is reachable whenever you need help.", icon: "🕒" },
+  ];
+  return (
+    <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {items.map((item) => (
+        <div key={item.title} className="rounded-2xl border border-white/60 bg-white/60 p-4 text-center shadow-sm backdrop-blur-xl">
+          <div className="text-xl" aria-hidden>
+            {item.icon}
+          </div>
+          <div className="mt-2 text-xs font-semibold text-gray-900">{item.title}</div>
+          <p className="mt-1 text-[11px] leading-snug text-gray-500">{item.body}</p>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function FaqSection() {
+  return (
+    <section>
+      <h2 className="text-lg font-semibold tracking-tight text-gray-900">Frequently asked questions</h2>
+      <div className="mt-4 divide-y divide-gray-200 rounded-2xl border border-white/60 bg-white/60 shadow-sm backdrop-blur-xl">
+        {FAQS.map((item) => (
+          // Native <details>/<summary> — an accordion the browser implements
+          // itself, no JS required to open/close.
+          <details key={item.q} className="group p-4">
+            <summary className="cursor-pointer list-none text-sm font-medium text-gray-900 marker:content-none">
+              <span className="flex items-center justify-between gap-4">
+                {item.q}
+                <span className="text-gray-400 transition group-open:rotate-45">+</span>
+              </span>
+            </summary>
+            <p className="mt-2 text-sm text-gray-600">{item.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
   );
 }
