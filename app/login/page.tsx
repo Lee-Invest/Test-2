@@ -1,56 +1,50 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { Nav } from "@/components/nav";
 
-// Reads the optional ?next= redirect target via window.location instead of
-// useSearchParams() so this page never needs a Suspense boundary around
-// that read — a useSearchParams()-in-Suspense page renders nothing from the
-// server until client JS finishes hydrating, which is exactly what made
-// this page appear blank if hydration was ever slow or failed (same root
-// cause fixed on the Buy Challenge page).
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [nextPath, setNextPath] = useState("/dashboard");
-  const router = useRouter();
+async function getCsrfToken() {
+  const h = headers();
+  const host = h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const res = await fetch(`${proto}://${host}/api/auth/csrf`, { cache: "no-store" });
+  const data = await res.json();
+  return data.csrfToken as string;
+}
 
-  useEffect(() => {
-    const next = new URLSearchParams(window.location.search).get("next");
-    if (next) setNextPath(next);
-  }, []);
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    const res = await signIn("credentials", { email, password, redirect: false });
-    setLoading(false);
-    if (res?.error) {
-      setError("Invalid email or password.");
-      return;
-    }
-    router.push(nextPath);
-  }
+// Plain server-rendered <form> posting straight to NextAuth's own
+// /api/auth/callback/credentials endpoint (the same endpoint next-auth's
+// built-in sign-in page posts to) instead of calling signIn() from client
+// JS. The browser handles this submission natively — sets the session
+// cookie and redirects on its own — so it works even if client-side event
+// handlers on this page were ever failing to fire.
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: { next?: string; error?: string; registered?: string; email?: string };
+}) {
+  const csrfToken = await getCsrfToken();
+  const callbackUrl = searchParams.next || "/dashboard";
 
   return (
     <>
       <Nav />
       <main className="mx-auto flex max-w-md flex-col px-4 py-20 sm:px-6">
         <h1 className="text-2xl font-bold text-gray-900">Log in</h1>
-        <form onSubmit={onSubmit} className="mt-8 space-y-4">
+        {searchParams.registered && (
+          <p className="mt-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+            Account created. Log in below to continue.
+          </p>
+        )}
+        <form action="/api/auth/callback/credentials" method="POST" className="mt-8 space-y-4">
+          <input type="hidden" name="csrfToken" value={csrfToken} />
+          <input type="hidden" name="callbackUrl" value={callbackUrl} />
           <div>
             <label className="block text-sm text-gray-600">Email</label>
             <input
               type="email"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name="email"
+              defaultValue={searchParams.email}
               className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-[var(--brand-primary)]"
             />
           </div>
@@ -59,18 +53,16 @@ export default function LoginPage() {
             <input
               type="password"
               required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              name="password"
               className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-[var(--brand-primary)]"
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {searchParams.error && <p className="text-sm text-red-600">Invalid email or password.</p>}
           <button
             type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-md bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90"
           >
-            {loading ? "Signing in…" : "Log in"}
+            Log in
           </button>
         </form>
         <div className="mt-4 flex justify-between text-sm text-gray-500">
