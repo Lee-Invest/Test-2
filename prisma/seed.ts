@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const TEMPLATE_DEFAULTS = [
   { accountSize: 10_000, priceCents: 8700 },
   { accountSize: 25_000, priceCents: 13800 },
-  { accountSize: 50_000, priceCents: 29600 },
+  { accountSize: 50_000, priceCents: 26300 },
   { accountSize: 100_000, priceCents: 51800 },
   { accountSize: 200_000, priceCents: 102800 },
 ];

@@ -54,7 +54,7 @@ export const STATIC_TEMPLATES: StaticTemplate[] = [
     id: "seed-50000",
     name: "$50,000 Challenge",
     accountSize: 50_000,
-    priceCents: 29_600,
+    priceCents: 26_300,
     phase1ProfitTargetPct: "10",
     phase2ProfitTargetPct: "5",
     maxDailyLossPct: "5",
