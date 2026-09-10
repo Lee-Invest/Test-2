@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/authz";
 import { calculatePayout } from "@/lib/risk-engine";
 import { checkPayoutEligibility } from "@/lib/payout-eligibility";
 import { effectiveProfitSplitPct } from "@/lib/profit-split";
+import { getPayoutsView } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
 
@@ -18,49 +19,7 @@ export async function GET() {
   const { session, error } = await requireUser();
   if (error || !session) return NextResponse.json({ error }, { status: 401 });
 
-  const payouts = await prisma.payout.findMany({
-    where: { account: { userId: session.user.id } },
-    include: { account: { select: { id: true, template: { select: { accountSize: true } } } } },
-    orderBy: { requestedAt: "desc" },
-  });
-
-  // Eligibility for each of the trader's own accounts, so the Payout center
-  // can show exactly why a request is/isn't currently allowed without the
-  // frontend recomputing any business rule itself.
-  const accounts = await prisma.account.findMany({
-    where: { userId: session.user.id },
-    include: { template: true, phases: { orderBy: { createdAt: "desc" } }, payouts: true },
-  });
-
-  const eligibility = accounts.map((account) => {
-    const currentPhase = account.phases[0];
-    const hasOpenBreach = account.phases.some((p) => p.status === "FAILED");
-    return {
-      accountId: account.id,
-      ...checkPayoutEligibility({
-        account,
-        currentPhase: currentPhase
-          ? {
-              type: currentPhase.type,
-              status: currentPhase.status,
-              tradingDays: currentPhase.tradingDays,
-              minTradingDays: currentPhase.minTradingDays,
-            }
-          : undefined,
-        payouts: account.payouts,
-        template: {
-          minPayoutCents: account.template.minPayoutCents,
-          payoutCycleDays: account.template.payoutCycleDays,
-          profitSplitTraderPct: effectiveProfitSplitPct(
-            account.profitSplitPct ? Number(account.profitSplitPct) : null,
-            Number(account.template.profitSplitTraderPct)
-          ),
-        },
-        hasOpenBreach,
-      }),
-    };
-  });
-
+  const { payouts, eligibility } = await getPayoutsView(session.user.id);
   return NextResponse.json({ payouts, eligibility });
 }
 
@@ -70,9 +29,24 @@ export async function POST(req: NextRequest) {
   const { session, error } = await requireUser();
   if (error || !session) return NextResponse.json({ error }, { status: 401 });
 
-  const body = await req.json().catch(() => null);
-  const parsed = requestSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "accountId is required." }, { status: 400 });
+  const contentType = req.headers.get("content-type") ?? "";
+  const isFormPost = contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
+
+  let raw: unknown;
+  if (isFormPost) {
+    const form = await req.formData();
+    raw = { accountId: form.get("accountId") };
+  } else {
+    raw = await req.json().catch(() => null);
+  }
+
+  const parsed = requestSchema.safeParse(raw);
+  if (!parsed.success) {
+    if (isFormPost) {
+      return NextResponse.redirect(new URL("/dashboard/payouts?error=accountId+is+required.", req.url), 303);
+    }
+    return NextResponse.json({ error: "accountId is required." }, { status: 400 });
+  }
 
   const account = await prisma.account.findUnique({
     where: { id: parsed.data.accountId },
@@ -80,11 +54,19 @@ export async function POST(req: NextRequest) {
   });
 
   if (!account || account.userId !== session.user.id) {
+    if (isFormPost) {
+      return NextResponse.redirect(new URL("/dashboard/payouts?error=Account+not+found.", req.url), 303);
+    }
     return NextResponse.json({ error: "Account not found." }, { status: 404 });
   }
 
   const currentPhase = account.phases[0];
   const hasOpenBreach = account.phases.some((p) => p.status === "FAILED");
+
+  const profitSplitTraderPct = effectiveProfitSplitPct(
+    account.profitSplitPct ? Number(account.profitSplitPct) : null,
+    Number(account.template.profitSplitTraderPct)
+  );
 
   const eligibility = checkPayoutEligibility({
     account,
@@ -100,16 +82,22 @@ export async function POST(req: NextRequest) {
     template: {
       minPayoutCents: account.template.minPayoutCents,
       payoutCycleDays: account.template.payoutCycleDays,
-      profitSplitTraderPct: Number(account.template.profitSplitTraderPct),
+      profitSplitTraderPct,
     },
     hasOpenBreach,
   });
 
   if (!eligibility.eligible) {
-    return NextResponse.json({ error: eligibility.reasons.join(" "), reasons: eligibility.reasons }, { status: 400 });
+    const message = eligibility.reasons.join(" ");
+    if (isFormPost) {
+      const url = new URL("/dashboard/payouts", req.url);
+      url.searchParams.set("error", message);
+      return NextResponse.redirect(url, 303);
+    }
+    return NextResponse.json({ error: message, reasons: eligibility.reasons }, { status: 400 });
   }
 
-  const calc = calculatePayout(account.startingBalanceCents, account.currentBalanceCents, Number(account.template.profitSplitTraderPct));
+  const calc = calculatePayout(account.startingBalanceCents, account.currentBalanceCents, profitSplitTraderPct);
 
   const payout = await prisma.payout.create({
     data: {
@@ -139,6 +127,10 @@ export async function POST(req: NextRequest) {
       body: `Your payout request for $${(calc.traderShareCents / 100).toLocaleString()} has been submitted and is under review.`,
     },
   });
+
+  if (isFormPost) {
+    return NextResponse.redirect(new URL("/dashboard/payouts?requested=1", req.url), 303);
+  }
 
   return NextResponse.json({ payout });
 }
