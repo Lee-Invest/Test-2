@@ -12,7 +12,13 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const secret = process.env.DEBUG_HEALTH_SECRET ?? process.env.NEXTAUTH_SECRET;
   const provided = req.nextUrl.searchParams.get("secret");
-  if (!secret || provided !== secret) {
+  if (!secret) {
+    return NextResponse.json(
+      { error: "NEXTAUTH_SECRET is not set in this environment — that alone would break login." },
+      { status: 500 }
+    );
+  }
+  if (provided !== secret) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
