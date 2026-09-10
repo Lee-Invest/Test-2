@@ -21,12 +21,12 @@ export function Nav() {
         <SkylineAccent />
         <SkylineAccent flip />
         <nav className="relative mx-auto flex max-w-6xl items-center justify-between px-8 py-3 sm:px-12">
-          <Link href="/" className="text-lg font-bold tracking-tight text-gray-900">
+          <Link href="/" className="text-lg font-bold tracking-tight text-white">
             {branding.name}
           </Link>
           <div className="hidden gap-6 md:flex">
             {links.map((l) => (
-              <Link key={l.href} href={l.href} className="text-sm text-gray-700 hover:text-gray-900">
+              <Link key={l.href} href={l.href} className="text-sm text-gray-200 hover:text-white">
                 {l.label}
               </Link>
             ))}
@@ -36,20 +36,20 @@ export function Nav() {
               <>
                 <Link
                   href={session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN" ? "/admin" : "/dashboard"}
-                  className="text-sm text-gray-800 hover:text-gray-900"
+                  className="text-sm text-gray-100 hover:text-white"
                 >
                   Dashboard
                 </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  className="rounded-full border border-white/50 bg-white/30 px-3 py-1.5 text-sm text-gray-900 backdrop-blur-xl hover:bg-white/50"
+                  className="rounded-full border border-white/50 bg-white/10 px-3 py-1.5 text-sm text-white backdrop-blur-xl hover:bg-black/30"
                 >
                   Sign out
                 </button>
               </>
             ) : (
               <>
-                <Link href="/login" className="text-sm text-gray-800 hover:text-gray-900">
+                <Link href="/login" className="text-sm text-gray-100 hover:text-white">
                   Log in
                 </Link>
                 <Link

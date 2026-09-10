@@ -62,32 +62,32 @@ export function ChallengeCards() {
     {
       icon: Target,
       label: "Phase 1 Profit Target",
-      render: (t) => <span className="font-semibold text-gray-900">{t.phase1ProfitTargetPct} percent</span>,
+      render: (t) => <span className="font-semibold text-white">{t.phase1ProfitTargetPct} percent</span>,
     },
     {
       icon: Target,
       label: "Phase 2 Profit Target",
-      render: (t) => <span className="font-semibold text-gray-900">{t.phase2ProfitTargetPct} percent</span>,
+      render: (t) => <span className="font-semibold text-white">{t.phase2ProfitTargetPct} percent</span>,
     },
     {
       icon: TrendingDown,
       label: "Maximum Daily Loss",
-      render: (t) => <span className="font-semibold text-gray-900">{t.maxDailyLossPct} percent</span>,
+      render: (t) => <span className="font-semibold text-white">{t.maxDailyLossPct} percent</span>,
     },
     {
       icon: ShieldAlert,
       label: "Maximum Total Loss",
-      render: (t) => <span className="font-semibold text-gray-900">{t.maxOverallLossPct} percent</span>,
+      render: (t) => <span className="font-semibold text-white">{t.maxOverallLossPct} percent</span>,
     },
     {
       icon: CalendarDays,
       label: "Minimum Trading Days",
-      render: (t) => <span className="font-semibold text-gray-900">{t.phase1MinTradingDays} days</span>,
+      render: (t) => <span className="font-semibold text-white">{t.phase1MinTradingDays} days</span>,
     },
     {
       icon: InfinityIcon,
       label: "Trading Period",
-      render: () => <span className="font-semibold text-gray-900">Unlimited</span>,
+      render: () => <span className="font-semibold text-white">Unlimited</span>,
     },
     {
       icon: Percent,
@@ -105,8 +105,8 @@ export function ChallengeCards() {
         return (
           <div
             key={t.id}
-            className={`relative flex flex-col rounded-2xl border p-5 pt-7 shadow-[0_8px_32px_rgba(31,38,135,0.1)] backdrop-blur-2xl transition hover:bg-white/30 ${
-              i === popularIdx ? "border-[var(--brand-primary)]/40 bg-white/25" : "border-white/40 bg-white/15"
+            className={`relative flex flex-col rounded-2xl border p-5 pt-7 shadow-[0_8px_32px_rgba(31,38,135,0.1)] backdrop-blur-2xl transition hover:bg-white/10 ${
+              i === popularIdx ? "border-[var(--brand-primary)]/40 bg-white/10" : "border-white/40 bg-white/8"
             }`}
           >
             {i === popularIdx && (
@@ -117,11 +117,11 @@ export function ChallengeCards() {
 
             <div className="text-center">
               <div className="text-xs uppercase tracking-wide text-gray-500">Account Size</div>
-              <div className="text-xl font-bold text-gray-900">${t.accountSize.toLocaleString()}</div>
+              <div className="text-xl font-bold text-white">${t.accountSize.toLocaleString()}</div>
             </div>
 
             <div className="mt-4 text-center">
-              <div className="text-2xl font-bold text-gray-900">{formatCents(t.priceCents)}</div>
+              <div className="text-2xl font-bold text-white">{formatCents(t.priceCents)}</div>
               <div className="text-xs text-gray-500">One-Time Evaluation Fee</div>
             </div>
 
@@ -142,7 +142,7 @@ export function ChallengeCards() {
               {rows.map((row) => (
                 <div key={row.label} className="flex items-center justify-between gap-2">
                   <dt className="flex min-w-0 items-center gap-1.5 text-gray-500">
-                    <row.icon size={13} className="shrink-0 text-gray-400" />
+                    <row.icon size={13} className="shrink-0 text-gray-500" />
                     <span className="truncate">{row.label}</span>
                   </dt>
                   <dd className="shrink-0">{row.render(t)}</dd>

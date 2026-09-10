@@ -29,7 +29,7 @@ export default function FaqPage() {
       <dl className="space-y-6">
         {faqs.map((f) => (
           <div key={f.q}>
-            <dt className="font-semibold text-gray-900">{f.q}</dt>
+            <dt className="font-semibold text-white">{f.q}</dt>
             <dd className="mt-1">{f.a}</dd>
           </div>
         ))}

@@ -30,20 +30,20 @@ const columns = [
 
 export function Footer() {
   return (
-    <footer className="relative border-t border-white/50 bg-white/25 shadow-[0_-8px_32px_rgba(31,38,135,0.08)] backdrop-blur-2xl">
+    <footer className="relative border-t border-white/50 bg-white/10 shadow-[0_-8px_32px_rgba(31,38,135,0.08)] backdrop-blur-2xl">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           <div>
-            <div className="text-lg font-bold text-gray-900">{branding.name}</div>
-            <p className="mt-2 max-w-xs text-sm text-gray-600">{branding.tagline}</p>
+            <div className="text-lg font-bold text-white">{branding.name}</div>
+            <p className="mt-2 max-w-xs text-sm text-gray-300">{branding.tagline}</p>
           </div>
           {columns.map((col) => (
             <div key={col.title}>
-              <div className="text-sm font-semibold text-gray-800">{col.title}</div>
+              <div className="text-sm font-semibold text-gray-100">{col.title}</div>
               <ul className="mt-3 space-y-2">
                 {col.links.map((l) => (
                   <li key={l.href}>
-                    <Link href={l.href} className="text-sm text-gray-600 hover:text-gray-900">
+                    <Link href={l.href} className="text-sm text-gray-300 hover:text-white">
                       {l.label}
                     </Link>
                   </li>
