@@ -20,16 +20,8 @@ export function Nav() {
     <>
       <header className="fixed inset-x-0 top-0 z-40 border-b border-white/50 bg-gradient-to-r from-slate-300/40 via-white/50 to-slate-300/40 shadow-[0_8px_32px_rgba(31,38,135,0.12)] backdrop-blur-2xl">
         <span
-          className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 overflow-hidden whitespace-nowrap text-xs font-semibold leading-none tracking-[0.12em] md:block"
-          style={{
-            color: "rgba(180, 140, 70, 0.95)",
-            // Same idea as the tree photos: width tracks the actual leftover
-            // space beside the centered nav content instead of a fixed size,
-            // so it shrinks to nothing (rather than overlapping the logo)
-            // as the window narrows.
-            width: "clamp(0px, calc((100vw - 1152px) / 2 - 24px), 14rem)",
-            textOverflow: "ellipsis",
-          }}
+          className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 whitespace-nowrap text-xs font-semibold leading-none tracking-[0.12em] min-[1700px]:block"
+          style={{ color: "rgba(180, 140, 70, 0.95)" }}
         >
           Created for traders, made for traders
         </span>
