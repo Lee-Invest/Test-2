@@ -29,16 +29,19 @@ export function PlatformSelector({
         const selected = selectedId === platform.id;
 
         return (
-          <div
+          <button
             key={platform.id}
-            className={`relative flex flex-col gap-2 rounded-2xl border-2 p-4 transition ${
+            type="button"
+            disabled={!allowed}
+            aria-pressed={selected}
+            onClick={() => onSelect(selected ? null : platform.id, feeCents)}
+            className={`relative flex flex-col gap-2 rounded-2xl border-2 p-4 text-left transition ${
               !allowed
                 ? "cursor-not-allowed border-gray-100 bg-gray-50 opacity-60"
                 : selected
-                ? "cursor-pointer border-[#b48c46] bg-[rgba(180,140,70,0.1)]"
-                : "cursor-pointer border-gray-200 bg-white hover:border-gray-300"
+                ? "border-[#b48c46] bg-[rgba(180,140,70,0.1)]"
+                : "border-gray-200 bg-white hover:border-gray-300"
             }`}
-            onClick={() => allowed && onSelect(selected ? null : platform.id, feeCents)}
           >
             {selected && allowed && (
               <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#b48c46] text-white">
@@ -78,7 +81,7 @@ export function PlatformSelector({
                 <span className="text-[var(--brand-accent)]">Included</span>
               )}
             </div>
-          </div>
+          </button>
         );
       })}
     </div>

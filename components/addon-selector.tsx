@@ -18,14 +18,16 @@ export function AddonSelector({
         const selected = selectedIds.includes(addon.id);
 
         return (
-          <div
+          <button
             key={addon.id}
-            className={`relative flex flex-col gap-1.5 rounded-2xl border-2 p-4 transition ${
-              selected
-                ? "cursor-pointer border-[#b48c46] bg-[rgba(180,140,70,0.1)]"
-                : "cursor-pointer border-gray-200 bg-white hover:border-gray-300"
-            }`}
+            type="button"
+            aria-pressed={selected}
             onClick={() => onToggle(addon)}
+            className={`relative flex flex-col gap-1.5 rounded-2xl border-2 p-4 text-left transition ${
+              selected
+                ? "border-[#b48c46] bg-[rgba(180,140,70,0.1)]"
+                : "border-gray-200 bg-white hover:border-gray-300"
+            }`}
           >
             {selected && (
               <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#b48c46] text-white">
@@ -38,7 +40,7 @@ export function AddonSelector({
               {formatCents(addon.priceCents)}
               {addon.billing === "MONTHLY" ? "/mo" : ""}
             </div>
-          </div>
+          </button>
         );
       })}
     </div>
