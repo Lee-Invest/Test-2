@@ -12,12 +12,12 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
     <>
       <div
         aria-hidden
-        className={`pointer-events-none absolute hidden w-80 overflow-hidden lg:block xl:w-[30rem] ${
-          isRight ? "right-0 top-0 h-[900px]" : "left-0 inset-y-0"
+        className={`pointer-events-none absolute hidden overflow-hidden lg:block ${
+          isRight ? "right-0 top-0 h-[900px] w-[26rem] xl:w-[34rem]" : "left-0 inset-y-0 w-80 xl:w-[30rem]"
         }`}
         style={{
-          WebkitMaskImage: `linear-gradient(to ${isRight ? "left" : "right"}, black 78%, transparent 100%)`,
-          maskImage: `linear-gradient(to ${isRight ? "left" : "right"}, black 78%, transparent 100%)`,
+          WebkitMaskImage: `linear-gradient(to ${isRight ? "left" : "right"}, black 85%, transparent 100%)`,
+          maskImage: `linear-gradient(to ${isRight ? "left" : "right"}, black 85%, transparent 100%)`,
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -45,7 +45,7 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
         className={`pointer-events-none absolute top-6 z-30 hidden text-sm font-medium italic tracking-wide lg:block ${
           isRight ? "right-8" : "left-8"
         }`}
-        style={{ color: "rgba(180, 140, 70, 0.95)", textShadow: "0 1px 6px rgba(255,255,255,0.6)" }}
+        style={{ color: "rgba(226, 229, 233, 0.95)", textShadow: "0 1px 6px rgba(0,0,0,0.45)" }}
       >
         {label}
       </div>

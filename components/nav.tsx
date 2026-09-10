@@ -21,16 +21,16 @@ export function Nav() {
         <SkylineAccent />
         <SkylineAccent flip />
         <nav className="relative mx-auto flex max-w-6xl items-center justify-between px-8 py-3 sm:px-12">
-          <div className="flex items-baseline gap-3">
-            <Link href="/" className="text-lg font-bold tracking-tight text-gray-900">
-              {branding.name}
-            </Link>
+          <div className="flex flex-col items-start">
             <span
-              className="hidden text-[10px] font-semibold uppercase tracking-[0.15em] sm:inline"
+              className="hidden text-[9px] font-semibold uppercase leading-none tracking-[0.15em] sm:inline"
               style={{ color: "rgba(180, 140, 70, 0.95)" }}
             >
               Built by traders, made for traders
             </span>
+            <Link href="/" className="text-lg font-bold tracking-tight text-gray-900">
+              {branding.name}
+            </Link>
           </div>
           <div className="hidden gap-6 md:flex">
             {links.map((l) => (
