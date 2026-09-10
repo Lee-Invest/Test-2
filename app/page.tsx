@@ -3,6 +3,7 @@ import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { branding } from "@/lib/branding";
 import { ChallengeCards } from "@/components/challenge-cards";
+import { TreeAccent } from "@/components/tree-accent";
 
 const steps = [
   { title: "Pick a challenge", body: "Choose an account size from $10K to $200K and pay a one-time evaluation fee." },
@@ -21,7 +22,9 @@ export default function Home() {
   return (
     <>
       <Nav />
-      <main>
+      <main className="relative">
+        <TreeAccent />
+        <div className="lg:pl-72 xl:pl-[22rem]">
         <section className="mx-auto max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pb-28 sm:pt-12">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-widest text-[var(--brand-accent)]">
@@ -105,6 +108,7 @@ export default function Home() {
             </Link>
           </div>
         </section>
+        </div>
       </main>
       <Footer />
     </>

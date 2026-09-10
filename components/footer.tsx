@@ -30,8 +30,8 @@ const columns = [
 
 export function Footer() {
   return (
-    <footer className="mx-auto mb-4 max-w-6xl px-3 sm:px-6">
-      <div className="rounded-2xl border border-white/40 bg-white/15 px-4 py-12 shadow-[0_8px_32px_rgba(31,38,135,0.08)] backdrop-blur-2xl sm:px-6">
+    <footer className="relative border-t border-white/50 bg-white/25 shadow-[0_-8px_32px_rgba(31,38,135,0.08)] backdrop-blur-2xl">
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           <div>
             <div className="text-lg font-bold text-gray-900">{branding.name}</div>
