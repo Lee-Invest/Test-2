@@ -232,21 +232,7 @@ export function BuyChallengeForm() {
           <StepHeader step={2} title="Choose your account size" className="mt-10" />
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {templates.map((t) => (
-              <SizeCard
-                key={t.id}
-                template={t}
-                selected={selectedId === t.id}
-                onSelect={() => {
-                  // TEMPORARY diagnostic: this alert always fires if the
-                  // click event reaches React at all, regardless of what
-                  // happens after. If clicking never shows this popup,
-                  // the click isn't reaching JavaScript (browser
-                  // extension/content blocker, not a code bug). Remove
-                  // once the report is confirmed either way.
-                  window.alert(`Clicked $${t.accountSize.toLocaleString()} — updating selection now.`);
-                  setSelectedId(t.id);
-                }}
-              />
+              <SizeCard key={t.id} template={t} selected={selectedId === t.id} onSelect={() => setSelectedId(t.id)} />
             ))}
           </div>
 
@@ -332,7 +318,7 @@ export function BuyChallengeForm() {
         </div>
 
         {/* Sticky order summary */}
-        <div className="lg:sticky lg:top-24 lg:self-start">
+        <div>
           <div className="rounded-2xl border border-white/40 bg-white/25 p-6 shadow-[0_8px_32px_rgba(31,38,135,0.08)] backdrop-blur-2xl">
             <div className="text-lg font-bold text-gray-900">Your Challenge</div>
 
