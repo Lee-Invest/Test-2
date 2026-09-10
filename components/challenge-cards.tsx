@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Target, TrendingDown, ShieldAlert, CalendarDays, Infinity as InfinityIcon, Percent } from "lucide-react";
@@ -19,17 +19,81 @@ interface Template {
   profitSplitTraderPct: string;
 }
 
+// Static display data matching the default seeded ChallengeTemplate rows
+// (see prisma/seed.ts) — the pricing page shown here no longer waits on a
+// fetch to /api/templates, so it never gets stuck on a loading state.
+// Checkout still hits the real /api/checkout route with this id, which
+// validates and prices the order server-side from the database; if an
+// admin changes a template's price or rules, update the values below to
+// match so the marketing display and the real checkout stay in sync.
+const TEMPLATES: Template[] = [
+  {
+    id: "seed-10000",
+    name: "$10,000 Challenge",
+    accountSize: 10_000,
+    priceCents: 8_700,
+    phase1ProfitTargetPct: "10",
+    phase2ProfitTargetPct: "5",
+    maxDailyLossPct: "5",
+    maxOverallLossPct: "10",
+    phase1MinTradingDays: 4,
+    profitSplitTraderPct: "80",
+  },
+  {
+    id: "seed-25000",
+    name: "$25,000 Challenge",
+    accountSize: 25_000,
+    priceCents: 13_800,
+    phase1ProfitTargetPct: "10",
+    phase2ProfitTargetPct: "5",
+    maxDailyLossPct: "5",
+    maxOverallLossPct: "10",
+    phase1MinTradingDays: 4,
+    profitSplitTraderPct: "80",
+  },
+  {
+    id: "seed-50000",
+    name: "$50,000 Challenge",
+    accountSize: 50_000,
+    priceCents: 31_000,
+    phase1ProfitTargetPct: "10",
+    phase2ProfitTargetPct: "5",
+    maxDailyLossPct: "5",
+    maxOverallLossPct: "10",
+    phase1MinTradingDays: 4,
+    profitSplitTraderPct: "80",
+  },
+  {
+    id: "seed-100000",
+    name: "$100,000 Challenge",
+    accountSize: 100_000,
+    priceCents: 51_800,
+    phase1ProfitTargetPct: "10",
+    phase2ProfitTargetPct: "5",
+    maxDailyLossPct: "5",
+    maxOverallLossPct: "10",
+    phase1MinTradingDays: 4,
+    profitSplitTraderPct: "80",
+  },
+  {
+    id: "seed-200000",
+    name: "$200,000 Challenge",
+    accountSize: 200_000,
+    priceCents: 102_800,
+    phase1ProfitTargetPct: "10",
+    phase2ProfitTargetPct: "5",
+    maxDailyLossPct: "5",
+    maxOverallLossPct: "10",
+    phase1MinTradingDays: 4,
+    profitSplitTraderPct: "80",
+  },
+];
+
 export function ChallengeCards() {
-  const [templates, setTemplates] = useState<Template[] | null>(null);
+  const templates = TEMPLATES;
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const { data: session } = useSession();
   const router = useRouter();
-
-  useEffect(() => {
-    fetch("/api/templates")
-      .then((r) => r.json())
-      .then((data) => setTemplates(data.templates ?? []));
-  }, []);
 
   async function startChallenge(templateId: string) {
     if (!session) {
@@ -50,10 +114,6 @@ export function ChallengeCards() {
     } finally {
       setLoadingId(null);
     }
-  }
-
-  if (templates === null) {
-    return <p className="text-center text-gray-500">Loading challenges…</p>;
   }
 
   const popularIdx = templates.findIndex((t) => t.accountSize === 100_000);
