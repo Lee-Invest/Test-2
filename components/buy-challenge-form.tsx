@@ -6,9 +6,18 @@ import { useRouter } from "next/navigation";
 import { Check, ShieldCheck, TrendingUp, Wallet } from "lucide-react";
 import { formatCents } from "@/lib/utils";
 import { STATIC_TEMPLATES, type StaticTemplate } from "@/lib/static-templates";
+import { STATIC_PLATFORMS, STATIC_PLATFORM_AVAILABILITY } from "@/lib/static-platforms";
+import { STATIC_ADDONS } from "@/lib/static-addons";
 import { RuleTooltip } from "@/components/rule-tooltip";
-import { PlatformSelector } from "@/components/platform-selector";
-import { AddonSelector } from "@/components/addon-selector";
+
+// Rebuilt to use native <input type="radio"/checkbox"> for every selection
+// in this form instead of div/button onClick handlers. A native form
+// control's checked state is owned and rendered by the browser itself —
+// clicking its <label> toggles it even if a JS event handler never runs at
+// all, so the selection itself can never silently "do nothing" the way a
+// custom onClick-driven card could. React only listens via onChange to
+// keep price/summary state in sync; it isn't what makes the input itself
+// interactive.
 
 const roadmap = [
   {
@@ -28,6 +37,14 @@ const roadmap = [
   },
 ];
 
+const trustPoints = [
+  { icon: ShieldCheck, label: "Secure Checkout" },
+  { icon: Check, label: "Transparent Rules" },
+  { icon: Wallet, label: "Clear Pricing" },
+];
+
+const included = ["2 Evaluation Phases", "Trading Dashboard", "Server-Verified Risk Engine"];
+
 function pctAmount(accountSize: number, pct: string) {
   const cents = Math.round(accountSize * 100 * (Number(pct) / 100));
   return `${pct}% (${formatCents(cents)})`;
@@ -37,40 +54,17 @@ function floorAfter(accountSize: number, pct: string) {
   return formatCents(accountSize * 100 - Math.round(accountSize * 100 * (Number(pct) / 100)));
 }
 
-const included = [
-  "2 Evaluation Phases",
-  "Trading Dashboard",
-  "Server-Verified Risk Engine",
-];
-
-const trustPoints = [
-  { icon: ShieldCheck, label: "Secure Checkout" },
-  { icon: Check, label: "Transparent Rules" },
-  { icon: Wallet, label: "Clear Pricing" },
-];
-
-interface SelectedAddon {
-  id: string;
-  name: string;
-  priceCents: number;
-}
-
 interface CouponPreview {
   valid: boolean;
   reason?: string;
   discountCents?: number;
-  totalCents?: number;
 }
 
 export function BuyChallengeForm() {
   const templates = STATIC_TEMPLATES;
-
-  const [selectedId, setSelectedId] = useState<string | null>(
-    templates[Math.floor(templates.length / 2)]?.id ?? null
-  );
-  const [platformId, setPlatformId] = useState<string | null>(null);
-  const [platformFeeCents, setPlatformFeeCents] = useState(0);
-  const [selectedAddons, setSelectedAddons] = useState<SelectedAddon[]>([]);
+  const [selectedId, setSelectedId] = useState<string>(templates[Math.floor(templates.length / 2)].id);
+  const [platformId, setPlatformId] = useState<string>("");
+  const [addonIds, setAddonIds] = useState<string[]>([]);
   const [couponCode, setCouponCode] = useState("");
   const [couponPreview, setCouponPreview] = useState<CouponPreview | null>(null);
   const [couponChecking, setCouponChecking] = useState(false);
@@ -81,13 +75,6 @@ export function BuyChallengeForm() {
   const { data: session } = useSession();
   const router = useRouter();
 
-  // Read an optional ?template= param on mount (plain window.location, not
-  // useSearchParams) so this page never needs a Suspense boundary around
-  // that read — a useSearchParams()-in-Suspense page renders nothing from
-  // the server until client JS finishes hydrating, which turned this page
-  // blank if hydration was ever slow or failed. Reading the query string
-  // after mount instead means the page's real content is already in the
-  // server-rendered HTML.
   useEffect(() => {
     const preselected = new URLSearchParams(window.location.search).get("template");
     if (preselected && templates.some((t) => t.id === preselected)) {
@@ -96,31 +83,36 @@ export function BuyChallengeForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Switching account size can change (or remove) platform availability/fee
-  // for the platform that was picked, so re-picking is required rather than
-  // silently carrying over a now-invalid selection.
-  useEffect(() => {
-    setPlatformId(null);
-    setPlatformFeeCents(0);
-    setSelectedAddons([]);
-    setCouponPreview(null);
-  }, [selectedId]);
-
-  const selected = templates.find((t) => t.id === selectedId);
-  const addonTotalCents = selectedAddons.reduce((sum, a) => sum + a.priceCents, 0);
+  const selected = templates.find((t) => t.id === selectedId) as StaticTemplate;
+  const platform = STATIC_PLATFORMS.find((p) => p.id === platformId);
+  const platformAvail = platform
+    ? STATIC_PLATFORM_AVAILABILITY.find((a) => a.templateId === selected.id && a.platformId === platform.id)
+    : undefined;
+  const platformFeeCents = platform && (platformAvail?.allowed ?? true) ? platformAvail?.feeCents ?? 0 : 0;
+  const chosenAddons = STATIC_ADDONS.filter((a) => addonIds.includes(a.id));
+  const addonTotalCents = chosenAddons.reduce((sum, a) => sum + a.priceCents, 0);
   const discountCents = couponPreview?.valid ? couponPreview.discountCents ?? 0 : 0;
-  const totalCents = (selected?.priceCents ?? 0) + platformFeeCents + addonTotalCents - discountCents;
+  const totalCents = selected.priceCents + platformFeeCents + addonTotalCents - discountCents;
+
+  function selectAccountSize(id: string) {
+    setSelectedId(id);
+    setPlatformId("");
+    setAddonIds([]);
+    setCouponPreview(null);
+  }
+
+  function toggleAddon(id: string) {
+    setAddonIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
 
   async function checkCoupon() {
-    if (!selected || !couponCode.trim()) {
+    if (!couponCode.trim()) {
       setCouponPreview(null);
       return;
     }
     setCouponChecking(true);
     try {
-      const res = await fetch(
-        `/api/coupons/validate?code=${encodeURIComponent(couponCode.trim())}&templateId=${selected.id}`
-      );
+      const res = await fetch(`/api/coupons/validate?code=${encodeURIComponent(couponCode.trim())}&templateId=${selected.id}`);
       const data = await res.json().catch(() => null);
       setCouponPreview(data ?? { valid: false, reason: "Could not check that code." });
     } catch {
@@ -130,21 +122,7 @@ export function BuyChallengeForm() {
     }
   }
 
-  function toggleAddon(addon: { id: string; name: string; priceCents: number }) {
-    setSelectedAddons((prev) =>
-      prev.some((a) => a.id === addon.id) ? prev.filter((a) => a.id !== addon.id) : [...prev, addon]
-    );
-  }
-
   async function startCheckout() {
-    if (!selected) return;
-    // Reads the real DOM checkbox value directly instead of trusting a
-    // controlled-input state value — this button was reported as
-    // permanently "stuck disabled" for some users even after checking the
-    // box, which is consistent with something (a browser extension, page
-    // translation, etc.) toggling the native checkbox without React's
-    // change handler firing. Checking .checked here can never disagree with
-    // what's actually on screen.
     if (!agreeRef.current?.checked) {
       setShowAgreeHint(true);
       agreeRef.current?.focus();
@@ -163,8 +141,8 @@ export function BuyChallengeForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           templateId: selected.id,
-          platformId: platformId ?? undefined,
-          addonIds: selectedAddons.length > 0 ? selectedAddons.map((a) => a.id) : undefined,
+          platformId: platformId || undefined,
+          addonIds: addonIds.length > 0 ? addonIds : undefined,
           couponCode: couponCode || undefined,
           agreedToRules: true,
         }),
@@ -212,9 +190,6 @@ export function BuyChallengeForm() {
 
       <div className="mt-10 grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          {/* Step 1 — Program (a single real program today; more can be
-              added by an admin without touching this UI, once a Program
-              model backs this section). */}
           <StepHeader step={1} title="Choose your program" />
           <div className="flex items-start gap-3 rounded-2xl border-2 border-[#b48c46] bg-[rgba(180,140,70,0.1)] p-4">
             <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#b48c46] text-white">
@@ -232,134 +207,238 @@ export function BuyChallengeForm() {
           <StepHeader step={2} title="Choose your account size" className="mt-10" />
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {templates.map((t) => (
-              <SizeCard key={t.id} template={t} selected={selectedId === t.id} onSelect={() => setSelectedId(t.id)} />
+              <label
+                key={t.id}
+                className={`relative flex cursor-pointer flex-col items-center gap-1 rounded-2xl border-2 px-4 py-5 text-center transition ${
+                  selectedId === t.id
+                    ? "border-[#b48c46] bg-[rgba(180,140,70,0.1)]"
+                    : "border-gray-200 bg-white hover:border-gray-300"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="account-size"
+                  value={t.id}
+                  checked={selectedId === t.id}
+                  onChange={() => selectAccountSize(t.id)}
+                  className="sr-only"
+                />
+                {selectedId === t.id && (
+                  <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#b48c46] text-white">
+                    <Check size={12} />
+                  </div>
+                )}
+                <div className="text-lg font-bold text-gray-900">${t.accountSize.toLocaleString()}</div>
+                <div className="text-xs text-gray-500">{formatCents(t.priceCents)}</div>
+              </label>
             ))}
           </div>
 
-          {selected && (
-            <>
-              <StepHeader step={3} title="Choose your trading platform" className="mt-10" />
-              <PlatformSelector
-                templateId={selected.id}
-                selectedId={platformId}
-                onSelect={(id, fee) => {
-                  setPlatformId(id);
-                  setPlatformFeeCents(id ? fee : 0);
-                }}
-              />
-              <p className="mt-2 text-xs text-gray-500">You can change your platform before your first trade.</p>
-
-              <StepHeader step={4} title="Add-ons (optional)" className="mt-10" />
-              <AddonSelector templateId={selected.id} selectedIds={selectedAddons.map((a) => a.id)} onToggle={toggleAddon} />
-
-              <StepHeader step={5} title="Your challenge rules" className="mt-10" />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <RuleCard label="Account Size" value={`$${selected.accountSize.toLocaleString()}`} />
-                <RuleCard label="Price" value={formatCents(selected.priceCents)} />
-                <RuleCard
-                  label="Phase 1 Target"
-                  value={`${selected.phase1ProfitTargetPct}%`}
-                  explain={`Grow your account balance by ${selected.phase1ProfitTargetPct}% during Phase 1 to move on to Phase 2.`}
-                />
-                <RuleCard
-                  label="Phase 2 Target"
-                  value={`${selected.phase2ProfitTargetPct}%`}
-                  explain={`Hit a second, smaller ${selected.phase2ProfitTargetPct}% target in Phase 2 to get funded.`}
-                />
-                <RuleCard
-                  label="Max Daily Loss"
-                  value={pctAmount(selected.accountSize, selected.maxDailyLossPct)}
-                  explain={`Your equity can't drop more than ${selected.maxDailyLossPct}% below where it started that trading day, or the account fails.`}
-                />
-                <RuleCard
-                  label="Max Total Loss"
-                  value={pctAmount(selected.accountSize, selected.maxOverallLossPct)}
-                  explain={`Your balance can never fall more than ${selected.maxOverallLossPct}% below the starting $${selected.accountSize.toLocaleString()} — it must always stay above ${floorAfter(selected.accountSize, selected.maxOverallLossPct)}.`}
-                />
-                <RuleCard
-                  label="Min Trading Days"
-                  value={`${selected.phase1MinTradingDays} / ${selected.phase2MinTradingDays}`}
-                  explain="You must place at least one trade on this many separate days in Phase 1 / Phase 2 respectively."
-                />
-                <RuleCard
-                  label="Profit Split"
-                  value={`${selected.profitSplitTraderPct}% to you`}
-                  explain={`Once funded, you keep ${selected.profitSplitTraderPct}% of the profits you withdraw.`}
-                />
-              </div>
-
-              <div className="mt-8 rounded-2xl border border-white/40 bg-white/20 p-6 backdrop-blur-xl">
-                <h2 className="text-lg font-bold text-gray-900">What happens after you pass</h2>
-                <div className="mt-5 grid gap-5 sm:grid-cols-3">
-                  {roadmap.map((step, i) => (
-                    <div key={step.title} className="flex flex-col gap-2">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
-                        <step.icon size={18} />
-                      </div>
-                      <div className="text-sm font-semibold text-gray-900">
-                        {i + 1}. {step.title}
-                      </div>
-                      <p className="text-xs text-gray-600">{step.body}</p>
+          <StepHeader step={3} title="Choose your trading platform" className="mt-10" />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {STATIC_PLATFORMS.map((p) => {
+              const avail = STATIC_PLATFORM_AVAILABILITY.find(
+                (a) => a.templateId === selected.id && a.platformId === p.id
+              );
+              const allowed = avail?.allowed ?? true;
+              const fee = avail?.feeCents ?? 0;
+              const isSelected = platformId === p.id;
+              return (
+                <label
+                  key={p.id}
+                  className={`relative flex flex-col gap-2 rounded-2xl border-2 p-4 transition ${
+                    !allowed
+                      ? "cursor-not-allowed border-gray-100 bg-gray-50 opacity-60"
+                      : isSelected
+                      ? "cursor-pointer border-[#b48c46] bg-[rgba(180,140,70,0.1)]"
+                      : "cursor-pointer border-gray-200 bg-white hover:border-gray-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="platform"
+                    value={p.id}
+                    disabled={!allowed}
+                    checked={isSelected}
+                    onChange={() => setPlatformId(isSelected ? "" : p.id)}
+                    className="sr-only"
+                  />
+                  {isSelected && allowed && (
+                    <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#b48c46] text-white">
+                      <Check size={12} />
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 rounded-2xl border border-white/40 bg-white/15 px-6 py-4">
-                {trustPoints.map((t) => (
-                  <div key={t.label} className="flex items-center gap-2 text-sm text-gray-600">
-                    <t.icon size={16} className="text-[var(--brand-accent)]" />
-                    {t.label}
+                  )}
+                  <div className="flex flex-wrap gap-1">
+                    {p.badges.map((b) => (
+                      <span
+                        key={b}
+                        className="inline-flex items-center rounded-full bg-gray-900/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-600"
+                      >
+                        {b}
+                      </span>
+                    ))}
                   </div>
-                ))}
+                  <div className="font-semibold text-gray-900">{p.name}</div>
+                  <p className="text-xs text-gray-500">{p.tagline}</p>
+                  <ul className="mt-1 space-y-1 text-xs text-gray-600">
+                    {p.features.map((f) => (
+                      <li key={f} className="flex items-center gap-1.5">
+                        <span className="h-1 w-1 rounded-full bg-gray-400" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-auto pt-2 text-xs font-semibold">
+                    {!allowed ? (
+                      <span className="text-gray-400">{avail?.unavailableReason ?? "Not available for this account size"}</span>
+                    ) : fee > 0 ? (
+                      <span className="text-gray-700">+{formatCents(fee)}</span>
+                    ) : (
+                      <span className="text-[var(--brand-accent)]">Included</span>
+                    )}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-gray-500">You can change your platform before your first trade.</p>
+
+          <StepHeader step={4} title="Add-ons (optional)" className="mt-10" />
+          <div className="grid gap-3 sm:grid-cols-3">
+            {STATIC_ADDONS.map((a) => {
+              const isSelected = addonIds.includes(a.id);
+              return (
+                <label
+                  key={a.id}
+                  className={`relative flex flex-col gap-1.5 rounded-2xl border-2 p-4 transition ${
+                    isSelected
+                      ? "cursor-pointer border-[#b48c46] bg-[rgba(180,140,70,0.1)]"
+                      : "cursor-pointer border-gray-200 bg-white hover:border-gray-300"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleAddon(a.id)}
+                    className="sr-only"
+                  />
+                  {isSelected && (
+                    <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#b48c46] text-white">
+                      <Check size={12} />
+                    </div>
+                  )}
+                  <div className="pr-6 font-semibold text-gray-900">{a.name}</div>
+                  <p className="text-xs text-gray-500">{a.description}</p>
+                  <div className="mt-auto pt-2 text-xs font-semibold text-gray-700">
+                    {formatCents(a.priceCents)}
+                    {a.billing === "MONTHLY" ? "/mo" : ""}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+
+          <StepHeader step={5} title="Your challenge rules" className="mt-10" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <RuleCard label="Account Size" value={`$${selected.accountSize.toLocaleString()}`} />
+            <RuleCard label="Price" value={formatCents(selected.priceCents)} />
+            <RuleCard
+              label="Phase 1 Target"
+              value={`${selected.phase1ProfitTargetPct}%`}
+              explain={`Grow your account balance by ${selected.phase1ProfitTargetPct}% during Phase 1 to move on to Phase 2.`}
+            />
+            <RuleCard
+              label="Phase 2 Target"
+              value={`${selected.phase2ProfitTargetPct}%`}
+              explain={`Hit a second, smaller ${selected.phase2ProfitTargetPct}% target in Phase 2 to get funded.`}
+            />
+            <RuleCard
+              label="Max Daily Loss"
+              value={pctAmount(selected.accountSize, selected.maxDailyLossPct)}
+              explain={`Your equity can't drop more than ${selected.maxDailyLossPct}% below where it started that trading day, or the account fails.`}
+            />
+            <RuleCard
+              label="Max Total Loss"
+              value={pctAmount(selected.accountSize, selected.maxOverallLossPct)}
+              explain={`Your balance can never fall more than ${selected.maxOverallLossPct}% below the starting $${selected.accountSize.toLocaleString()} — it must always stay above ${floorAfter(selected.accountSize, selected.maxOverallLossPct)}.`}
+            />
+            <RuleCard
+              label="Min Trading Days"
+              value={`${selected.phase1MinTradingDays} / ${selected.phase2MinTradingDays}`}
+              explain="You must place at least one trade on this many separate days in Phase 1 / Phase 2 respectively."
+            />
+            <RuleCard
+              label="Profit Split"
+              value={`${selected.profitSplitTraderPct}% to you`}
+              explain={`Once funded, you keep ${selected.profitSplitTraderPct}% of the profits you withdraw.`}
+            />
+          </div>
+
+          <div className="mt-8 rounded-2xl border border-white/40 bg-white/20 p-6 backdrop-blur-xl">
+            <h2 className="text-lg font-bold text-gray-900">What happens after you pass</h2>
+            <div className="mt-5 grid gap-5 sm:grid-cols-3">
+              {roadmap.map((step, i) => (
+                <div key={step.title} className="flex flex-col gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
+                    <step.icon size={18} />
+                  </div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    {i + 1}. {step.title}
+                  </div>
+                  <p className="text-xs text-gray-600">{step.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 rounded-2xl border border-white/40 bg-white/15 px-6 py-4">
+            {trustPoints.map((t) => (
+              <div key={t.label} className="flex items-center gap-2 text-sm text-gray-600">
+                <t.icon size={16} className="text-[var(--brand-accent)]" />
+                {t.label}
               </div>
-            </>
-          )}
+            ))}
+          </div>
         </div>
 
-        {/* Sticky order summary */}
         <div>
           <div className="rounded-2xl border border-white/40 bg-white/25 p-6 shadow-[0_8px_32px_rgba(31,38,135,0.08)] backdrop-blur-2xl">
             <div className="text-lg font-bold text-gray-900">Your Challenge</div>
 
-            {selected ? (
-              <dl className="mt-4 space-y-2 text-sm">
-                <SummaryRow label="Account" value={`$${selected.accountSize.toLocaleString()}`} />
-                <SummaryRow label="Program" value="2-Step Evaluation" />
-                <SummaryRow label="Platform" value={platformId ? "Selected" : "Not chosen yet"} />
-                {selectedAddons.map((a) => (
-                  <SummaryRow key={a.id} label={a.name} value={formatCents(a.priceCents)} />
-                ))}
-                <div className="border-t border-gray-200 pt-2">
-                  <SummaryRow label="Subtotal" value={formatCents(selected.priceCents)} />
-                  {platformFeeCents > 0 && <SummaryRow label="Platform fee" value={`+${formatCents(platformFeeCents)}`} />}
-                  {addonTotalCents > 0 && <SummaryRow label="Add-ons" value={`+${formatCents(addonTotalCents)}`} />}
-                  {discountCents > 0 && (
-                    <SummaryRow label={`Discount (${couponCode.toUpperCase()})`} value={`-${formatCents(discountCents)}`} />
-                  )}
-                </div>
-                <div className="flex items-center justify-between border-t border-gray-200 pt-2 text-base font-bold text-gray-900">
-                  <span>Total</span>
-                  <span>{formatCents(totalCents)}</span>
-                </div>
+            <dl className="mt-4 space-y-2 text-sm">
+              <SummaryRow label="Account" value={`$${selected.accountSize.toLocaleString()}`} />
+              <SummaryRow label="Program" value="2-Step Evaluation" />
+              <SummaryRow label="Platform" value={platform ? platform.name : "Not chosen yet"} />
+              {chosenAddons.map((a) => (
+                <SummaryRow key={a.id} label={a.name} value={formatCents(a.priceCents)} />
+              ))}
+              <div className="border-t border-gray-200 pt-2">
+                <SummaryRow label="Subtotal" value={formatCents(selected.priceCents)} />
+                {platformFeeCents > 0 && <SummaryRow label="Platform fee" value={`+${formatCents(platformFeeCents)}`} />}
+                {addonTotalCents > 0 && <SummaryRow label="Add-ons" value={`+${formatCents(addonTotalCents)}`} />}
+                {discountCents > 0 && (
+                  <SummaryRow label={`Discount (${couponCode.toUpperCase()})`} value={`-${formatCents(discountCents)}`} />
+                )}
+              </div>
+              <div className="flex items-center justify-between border-t border-gray-200 pt-2 text-base font-bold text-gray-900">
+                <span>Total</span>
+                <span>{formatCents(totalCents)}</span>
+              </div>
 
-                <div className="border-t border-gray-200 pt-2 text-xs text-gray-500">
-                  Estimated First Payout{" "}
-                  <span className="font-semibold text-[var(--brand-accent)]">
-                    {formatCents(
-                      Math.round(
-                        selected.accountSize * 100 * (Number(selected.phase1ProfitTargetPct) / 100) * (Number(selected.profitSplitTraderPct) / 100)
-                      )
-                    )}
-                  </span>
-                  <p className="mt-0.5 text-[11px] text-gray-400">
-                    An example based on this configuration — not a guaranteed return.
-                  </p>
-                </div>
-              </dl>
-            ) : (
-              <p className="mt-4 text-sm text-gray-500">Pick an account size to see your order summary.</p>
-            )}
+              <div className="border-t border-gray-200 pt-2 text-xs text-gray-500">
+                Estimated First Payout{" "}
+                <span className="font-semibold text-[var(--brand-accent)]">
+                  {formatCents(
+                    Math.round(
+                      selected.accountSize * 100 * (Number(selected.phase1ProfitTargetPct) / 100) * (Number(selected.profitSplitTraderPct) / 100)
+                    )
+                  )}
+                </span>
+                <p className="mt-0.5 text-[11px] text-gray-400">
+                  An example based on this configuration — not a guaranteed return.
+                </p>
+              </div>
+            </dl>
 
             <label className="mt-6 block text-xs text-gray-500">Coupon code (optional)</label>
             <div className="mt-1 flex gap-2">
@@ -423,7 +502,7 @@ export function BuyChallengeForm() {
             <button
               type="button"
               onClick={startCheckout}
-              disabled={loading || !selected}
+              disabled={loading}
               style={{ backgroundColor: "#2563eb" }}
               className="mt-6 w-full rounded-md px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
@@ -459,37 +538,6 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
       <dt className="text-gray-500">{label}</dt>
       <dd className="font-medium text-gray-900">{value}</dd>
     </div>
-  );
-}
-
-function SizeCard({
-  template,
-  selected,
-  onSelect,
-}: {
-  template: StaticTemplate;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      className={`relative flex flex-col items-center gap-1 rounded-2xl border-2 px-4 py-5 text-center transition ${
-        selected
-          ? "border-[#b48c46] bg-[rgba(180,140,70,0.1)]"
-          : "border-gray-200 bg-white hover:border-gray-300"
-      }`}
-    >
-      {selected && (
-        <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#b48c46] text-white">
-          <Check size={12} />
-        </div>
-      )}
-      <div className="text-lg font-bold text-gray-900">${template.accountSize.toLocaleString()}</div>
-      <div className="text-xs text-gray-500">{formatCents(template.priceCents)}</div>
-    </button>
   );
 }
 
