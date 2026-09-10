@@ -2,27 +2,24 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { Nav } from "@/components/nav";
 
-async function getCsrfToken() {
-  const h = headers();
-  const host = h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  const res = await fetch(`${proto}://${host}/api/auth/csrf`, { cache: "no-store" });
-  const data = await res.json();
-  return data.csrfToken as string;
-}
-
 // Plain server-rendered <form> posting straight to NextAuth's own
 // /api/auth/callback/credentials endpoint (the same endpoint next-auth's
 // built-in sign-in page posts to) instead of calling signIn() from client
 // JS. The browser handles this submission natively — sets the session
 // cookie and redirects on its own — so it works even if client-side event
 // handlers on this page were ever failing to fire.
+//
+// The CSRF token has to come from middleware.ts (via the x-csrf-token
+// request header), not a fetch done here: a Server Component can only read
+// cookies, never set them, so a token fetched directly in this page would
+// never get its matching cookie onto the browser and every submit would
+// fail CSRF validation.
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: { next?: string; error?: string; registered?: string; email?: string };
 }) {
-  const csrfToken = await getCsrfToken();
+  const csrfToken = headers().get("x-csrf-token") ?? "";
   const callbackUrl = searchParams.next || "/dashboard";
 
   return (
