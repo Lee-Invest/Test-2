@@ -10,28 +10,68 @@ import { rateLimit } from "@/lib/rate-limit";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const contentType = req.headers.get("content-type") ?? "";
+  const isFormPost = contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
+
   const session = await getServerSession(authOptions);
   if (!session?.user) {
+    if (isFormPost) {
+      return NextResponse.redirect(new URL("/login?next=/pricing", req.url), 303);
+    }
     return NextResponse.json({ error: "You must be signed in to purchase a challenge." }, { status: 401 });
   }
 
   const rl = rateLimit(`checkout:${session.user.id}`, 10, 60_000);
   if (!rl.allowed) {
+    if (isFormPost) {
+      return NextResponse.redirect(new URL("/pricing?error=Too+many+requests.", req.url), 303);
+    }
     return NextResponse.json({ error: "Too many requests." }, { status: 429 });
   }
 
-  const body = await req.json().catch(() => null);
+  let body: unknown;
+  if (isFormPost) {
+    const form = await req.formData();
+    body = {
+      templateId: form.get("templateId") || undefined,
+      couponCode: form.get("couponCode") || undefined,
+      platformId: form.get("platformId") || undefined,
+      addonIds: form.getAll("addonIds").length > 0 ? form.getAll("addonIds") : undefined,
+      agreedToRules: form.get("agreedToRules") === "on",
+    };
+  } else {
+    body = await req.json().catch(() => null);
+  }
+
   const parsed = checkoutSchema.safeParse(body);
   if (!parsed.success) {
+    if (isFormPost) {
+      const message = parsed.error.issues[0]?.message ?? "Please check the form and try again.";
+      const url = new URL("/pricing", req.url);
+      url.searchParams.set("error", message);
+      const templateId = (body as { templateId?: string })?.templateId;
+      if (templateId) url.searchParams.set("template", templateId);
+      return NextResponse.redirect(url, 303);
+    }
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
   const { templateId, couponCode, platformId, addonIds } = parsed.data;
   const agreedAt = new Date();
 
+  function fail(status: number, message: string) {
+    if (isFormPost) {
+      const url = new URL("/pricing", req.url);
+      url.searchParams.set("error", message);
+      url.searchParams.set("template", templateId);
+      return NextResponse.redirect(url, 303);
+    }
+    return NextResponse.json({ error: message }, { status });
+  }
+
   const template = await prisma.challengeTemplate.findUnique({ where: { id: templateId } });
   if (!template || !template.active) {
-    return NextResponse.json({ error: "Challenge template not found." }, { status: 404 });
+    return fail(404, "Challenge template not found.");
   }
 
   // Platform is optional, but if one was picked, the (template, platform)
@@ -41,16 +81,13 @@ export async function POST(req: NextRequest) {
   if (platformId) {
     const platform = await prisma.tradingPlatform.findUnique({ where: { id: platformId } });
     if (!platform || !platform.active) {
-      return NextResponse.json({ error: "Selected trading platform not found." }, { status: 404 });
+      return fail(404, "Selected trading platform not found.");
     }
     const availability = await prisma.platformAvailability.findUnique({
       where: { templateId_platformId: { templateId: template.id, platformId } },
     });
     if (availability && !availability.allowed) {
-      return NextResponse.json(
-        { error: availability.unavailableReason ?? "This platform isn't available for the selected account size." },
-        { status: 400 }
-      );
+      return fail(400, availability.unavailableReason ?? "This platform isn't available for the selected account size.");
     }
     platformFeeCents = availability?.feeCents ?? 0;
   }
@@ -61,14 +98,14 @@ export async function POST(req: NextRequest) {
   if (addonIds && addonIds.length > 0) {
     const found = await prisma.addon.findMany({ where: { id: { in: addonIds }, active: true } });
     if (found.length !== addonIds.length) {
-      return NextResponse.json({ error: "One or more selected add-ons are no longer available." }, { status: 400 });
+      return fail(400, "One or more selected add-ons are no longer available.");
     }
     const availabilityRows = await prisma.addonAvailability.findMany({
       where: { templateId: template.id, addonId: { in: addonIds } },
     });
     const blocked = availabilityRows.find((a) => !a.allowed);
     if (blocked) {
-      return NextResponse.json({ error: "One or more selected add-ons aren't available for this account size." }, { status: 400 });
+      return fail(400, "One or more selected add-ons aren't available for this account size.");
     }
     addons = found.map((a) => ({ id: a.id, priceCents: a.priceCents }));
   }
@@ -122,11 +159,9 @@ export async function POST(req: NextRequest) {
   // account -> see the dashboard" flow can be exercised end to end without
   // a Stripe account. No card data is collected or transmitted anywhere.
   if (!isStripeConfigured) {
-    return NextResponse.json({
-      url: `${baseUrl}/checkout/pay?orderId=${order.id}`,
-      orderId: order.id,
-      devMode: true,
-    });
+    const url = `${baseUrl}/checkout/pay?orderId=${order.id}`;
+    if (isFormPost) return NextResponse.redirect(url, 303);
+    return NextResponse.json({ url, orderId: order.id, devMode: true });
   }
 
   try {
@@ -154,10 +189,12 @@ export async function POST(req: NextRequest) {
       data: { stripeSessionId: checkoutSession.id },
     });
 
+    if (isFormPost && checkoutSession.url) return NextResponse.redirect(checkoutSession.url, 303);
     return NextResponse.json({ url: checkoutSession.url, orderId: order.id });
   } catch (err) {
     // In local/dev environments without real Stripe keys, this call fails.
     // We still return the created order so the flow can be exercised.
+    if (isFormPost) return NextResponse.redirect(`${baseUrl}/checkout/pay?orderId=${order.id}`, 303);
     return NextResponse.json(
       { error: "Stripe checkout session could not be created (dev mode?).", orderId: order.id, detail: (err as Error).message },
       { status: 502 }
