@@ -77,17 +77,35 @@ export default function DashboardPage() {
   const [filterSymbol, setFilterSymbol] = useState<string>("");
   const [requesting, setRequesting] = useState<string | null>(null);
   const [payoutMessage, setPayoutMessage] = useState<string | null>(null);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [payoutsError, setPayoutsError] = useState<string | null>(null);
 
+  // Both loaders previously had no .catch: a network error or a non-JSON
+  // (e.g. HTML error page) response would silently leave accounts/payouts
+  // at null forever, showing "Loading…" with no way to tell anything had
+  // gone wrong.
   function loadDashboard() {
+    setDashboardError(null);
     fetch("/api/dashboard")
-      .then((r) => r.json())
-      .then((d) => setAccounts(d.accounts ?? []));
+      .then(async (r) => {
+        const data = await r.json().catch(() => null);
+        if (!r.ok || !data) throw new Error(data?.error ? JSON.stringify(data.error) : `Request failed (${r.status})`);
+        return data;
+      })
+      .then((d) => setAccounts(d.accounts ?? []))
+      .catch((err) => setDashboardError(err instanceof Error ? err.message : "Failed to load dashboard."));
   }
 
   function loadPayouts() {
+    setPayoutsError(null);
     fetch("/api/payouts")
-      .then((r) => r.json())
-      .then((d) => setPayouts(d.payouts ?? []));
+      .then(async (r) => {
+        const data = await r.json().catch(() => null);
+        if (!r.ok || !data) throw new Error(data?.error ? JSON.stringify(data.error) : `Request failed (${r.status})`);
+        return data;
+      })
+      .then((d) => setPayouts(d.payouts ?? []))
+      .catch((err) => setPayoutsError(err instanceof Error ? err.message : "Failed to load payouts."));
   }
 
   useEffect(() => {
@@ -133,7 +151,15 @@ export default function DashboardPage() {
 
         {tab === "overview" && (
           <>
-            {accounts === null && <p className="mt-8 text-gray-500">Loading…</p>}
+            {dashboardError && (
+              <p className="mt-8 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                Couldn&apos;t load your dashboard: {dashboardError}{" "}
+                <button onClick={loadDashboard} className="font-semibold underline">
+                  Retry
+                </button>
+              </p>
+            )}
+            {accounts === null && !dashboardError && <p className="mt-8 text-gray-500">Loading…</p>}
             {accounts?.length === 0 && (
               <p className="mt-8 text-gray-500">
                 You don&apos;t have any challenge accounts yet.{" "}
@@ -296,7 +322,15 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-gray-900">Payout History</h2>
             {payoutMessage && <p className="mt-2 text-sm text-gray-600">{payoutMessage}</p>}
 
-            {payouts === null && <p className="mt-4 text-gray-500">Loading…</p>}
+            {payoutsError && (
+              <p className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                Couldn&apos;t load payouts: {payoutsError}{" "}
+                <button onClick={loadPayouts} className="font-semibold underline">
+                  Retry
+                </button>
+              </p>
+            )}
+            {payouts === null && !payoutsError && <p className="mt-4 text-gray-500">Loading…</p>}
             {payouts?.length === 0 && (
               <p className="mt-4 text-gray-500">
                 No payouts yet. Once an account reaches Funded status, you can request a payout from the Overview
