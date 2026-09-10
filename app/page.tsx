@@ -69,37 +69,6 @@ export default function Home() {
           </div>
         </section>
 
-        <div className="relative z-30 overflow-hidden border-y border-white/40 bg-white/25 py-4 backdrop-blur-2xl">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-y-0 left-0 w-32 backdrop-blur-md"
-            style={{
-              WebkitMaskImage: "linear-gradient(to right, black, transparent)",
-              maskImage: "linear-gradient(to right, black, transparent)",
-              background: "var(--background)",
-              opacity: 0.4,
-            }}
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-y-0 right-0 w-32 backdrop-blur-md"
-            style={{
-              WebkitMaskImage: "linear-gradient(to left, black, transparent)",
-              maskImage: "linear-gradient(to left, black, transparent)",
-              background: "var(--background)",
-              opacity: 0.4,
-            }}
-          />
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 text-center text-xs font-semibold uppercase tracking-widest text-gray-700 sm:px-6">
-            <span>Two-Phase Evaluation</span>
-            <span className="hidden text-gray-300 sm:inline">•</span>
-            <span>Server-Verified Risk Engine</span>
-            <span className="hidden text-gray-300 sm:inline">•</span>
-            <span>Transparent Pricing</span>
-            <span className="hidden text-gray-300 sm:inline">•</span>
-            <span>Up to 80% Profit Split</span>
-          </div>
-        </div>
         </div>
 
         <section id="choose-challenge" className="scroll-mt-20 py-16">

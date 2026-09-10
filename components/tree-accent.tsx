@@ -14,7 +14,7 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
       <div
         aria-hidden
         className={`pointer-events-none absolute z-20 hidden overflow-hidden lg:block ${
-          isRight ? "right-0 inset-y-0 w-[30rem] xl:w-[40rem]" : "left-0 inset-y-0 w-80 xl:w-[30rem]"
+          isRight ? "right-0 inset-y-0 w-[24rem] xl:w-[32rem]" : "left-0 inset-y-0 w-80 xl:w-[30rem]"
         }`}
         style={{
           WebkitMaskImage: `linear-gradient(to ${isRight ? "left" : "right"}, black 85%, transparent 100%)`,
