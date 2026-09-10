@@ -11,7 +11,7 @@
 // text once the window gets narrower than whatever breakpoint was chosen.
 const CONTENT_WIDTH_PX = 1152;
 const GUTTER_PADDING_PX = 32;
-const MAX_PHOTO_WIDTH_PX = 224;
+const MAX_PHOTO_WIDTH_PX = 480;
 
 // (100vw - content)/2 is the space on one side of the centered content; we
 // reserve some of that as padding and clamp the rest between 0 and a max.
