@@ -26,13 +26,6 @@ export default function Home() {
         <TreeAccent side="left" />
         <TreeAccent side="right" />
 
-        <div
-          className="pointer-events-none absolute left-6 top-4 z-20 text-xs font-semibold uppercase tracking-[0.2em] sm:left-10"
-          style={{ color: "rgba(197, 160, 89, 0.95)", textShadow: "0 1px 8px rgba(0,0,0,0.35)" }}
-        >
-          Built by traders, made for traders
-        </div>
-
         <section className="relative z-10 bg-white/35 pb-20 pt-8 backdrop-blur-2xl sm:pb-28 sm:pt-12">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="max-w-2xl">

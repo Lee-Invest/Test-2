@@ -9,40 +9,46 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
   const isRight = side === "right";
   const label = isRight ? "With Finance Trust" : "With Nature Trust";
   return (
-    <div
-      aria-hidden
-      className={`pointer-events-none absolute hidden w-80 overflow-hidden lg:block xl:w-[28rem] ${
-        isRight ? "right-0 top-0 h-[880px]" : "left-0 inset-y-0"
-      }`}
-      style={{
-        WebkitMaskImage: `linear-gradient(to ${isRight ? "left" : "right"}, black 65%, transparent 100%)`,
-        maskImage: `linear-gradient(to ${isRight ? "left" : "right"}, black 65%, transparent 100%)`,
-      }}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={isRight ? "/tree-right.png" : "/tree.png"}
-        alt=""
-        className="h-full w-full object-cover object-top"
-      />
-      <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />
+    <>
       <div
-        className={`absolute inset-y-0 w-24 backdrop-blur-md ${
-          isRight
-            ? "left-0 bg-gradient-to-l from-transparent to-[var(--background)]"
-            : "right-0 bg-gradient-to-r from-transparent to-[var(--background)]"
+        aria-hidden
+        className={`pointer-events-none absolute hidden w-80 overflow-hidden lg:block xl:w-[30rem] ${
+          isRight ? "right-0 top-0 h-[900px]" : "left-0 inset-y-0"
         }`}
-      />
-      <div className="absolute inset-x-0 top-0 h-52 bg-gradient-to-b from-[var(--background)] via-[var(--background)]/40 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-[var(--background)] backdrop-blur-md" />
+        style={{
+          WebkitMaskImage: `linear-gradient(to ${isRight ? "left" : "right"}, black 78%, transparent 100%)`,
+          maskImage: `linear-gradient(to ${isRight ? "left" : "right"}, black 78%, transparent 100%)`,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={isRight ? "/tree-right.png" : "/tree.png"}
+          alt=""
+          className="h-full w-full object-cover object-top"
+        />
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />
+        <div
+          className={`absolute inset-y-0 w-24 backdrop-blur-md ${
+            isRight
+              ? "left-0 bg-gradient-to-l from-transparent to-[var(--background)]"
+              : "right-0 bg-gradient-to-r from-transparent to-[var(--background)]"
+          }`}
+        />
+        <div className="absolute inset-x-0 top-0 h-52 bg-gradient-to-b from-[var(--background)] via-[var(--background)]/40 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-b from-transparent via-[var(--background)]/60 to-[var(--background)] backdrop-blur-md" />
+      </div>
+
+      {/* Rendered as its own layer (z-30) so it always shows above the hero
+          glass panel (z-10) instead of being hidden underneath it. */}
       <div
-        className={`absolute top-24 text-sm font-medium italic tracking-wide text-white/90 [text-shadow:0_1px_6px_rgba(0,0,0,0.5)] ${
-          isRight ? "right-6" : "left-6"
+        aria-hidden
+        className={`pointer-events-none absolute top-6 z-30 hidden text-sm font-medium italic tracking-wide lg:block ${
+          isRight ? "right-8" : "left-8"
         }`}
-        style={{ color: "rgba(212, 175, 132, 0.9)" }}
+        style={{ color: "rgba(180, 140, 70, 0.95)", textShadow: "0 1px 6px rgba(255,255,255,0.6)" }}
       >
         {label}
       </div>
-    </div>
+    </>
   );
 }
