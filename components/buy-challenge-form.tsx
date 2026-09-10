@@ -225,11 +225,16 @@ export function BuyChallengeForm() {
               type="button"
               onClick={startCheckout}
               disabled={loading || !agreed}
-              style={{ backgroundColor: "#1d3557" }}
+              style={{ backgroundColor: "#2563eb" }}
               className="mt-6 w-full rounded-md px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? "Starting checkout…" : "Buy Challenge"}
             </button>
+            {!agreed && (
+              <p className="mt-2 text-xs text-amber-600">
+                Check the box above to agree to the Funded Trader Agreement before you can continue.
+              </p>
+            )}
             {message && <p className="mt-3 text-xs text-gray-600">{message}</p>}
           </div>
         </div>
