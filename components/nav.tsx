@@ -63,10 +63,10 @@ export async function Nav() {
           <div className="hidden items-center gap-3 lg:flex">
             {session?.user ? (
               <>
+                <SignOutForm csrfToken={csrfToken} />
                 <Link href={dashboardHref} className="text-sm text-gray-800 hover:text-gray-900">
                   Dashboard
                 </Link>
-                <SignOutForm csrfToken={csrfToken} />
               </>
             ) : (
               <>
@@ -114,10 +114,10 @@ export async function Nav() {
             <div className="mt-2 flex flex-col gap-2 border-t border-white/40 pt-3">
               {session?.user ? (
                 <>
+                  <SignOutForm csrfToken={csrfToken} block />
                   <Link href={dashboardHref} className="text-sm text-gray-800 hover:text-gray-900">
                     Dashboard
                   </Link>
-                  <SignOutForm csrfToken={csrfToken} block />
                 </>
               ) : (
                 <>
@@ -163,7 +163,7 @@ function SignOutForm({ csrfToken, block }: { csrfToken: string; block?: boolean 
             : "rounded-full border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
         }
       >
-        Sign out
+        Account
       </button>
     </form>
   );
