@@ -79,13 +79,13 @@ export function AddonSelector({
               !allowed
                 ? "cursor-not-allowed border-gray-100 bg-gray-50 opacity-60"
                 : selected
-                ? "cursor-pointer border-[rgba(192,192,197,0.9)] bg-[rgba(192,192,197,0.15)]"
+                ? "cursor-pointer border-[#b48c46] bg-[rgba(180,140,70,0.1)]"
                 : "cursor-pointer border-gray-200 bg-white hover:border-gray-300"
             }`}
             onClick={() => allowed && onToggle(addon)}
           >
             {selected && allowed && (
-              <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(140,140,148,0.9)] text-white">
+              <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#b48c46] text-white">
                 <Check size={12} />
               </div>
             )}

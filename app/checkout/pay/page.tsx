@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { formatCents } from "@/lib/utils";
@@ -25,18 +25,14 @@ function formatExpiry(value: string) {
   return `${digits.slice(0, 2)}/${digits.slice(2)}`;
 }
 
+// Reads ?orderId= via window.location instead of useSearchParams() so this
+// page never needs a Suspense boundary around that read — a
+// useSearchParams()-in-Suspense page renders nothing from the server until
+// client JS finishes hydrating, which is what made pages like this and
+// /login appear blank if hydration was ever slow or failed.
 export default function SimulatedPaymentPage() {
-  return (
-    <Suspense fallback={null}>
-      <SimulatedPaymentForm />
-    </Suspense>
-  );
-}
-
-function SimulatedPaymentForm() {
-  const params = useSearchParams();
   const router = useRouter();
-  const orderId = params.get("orderId");
+  const [orderId, setOrderId] = useState<string | null | undefined>(undefined);
 
   const [order, setOrder] = useState<OrderSummary | null>(null);
   const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
@@ -45,6 +41,10 @@ function SimulatedPaymentForm() {
   const [name, setName] = useState("");
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOrderId(new URLSearchParams(window.location.search).get("orderId"));
+  }, []);
 
   useEffect(() => {
     if (!orderId) return;
@@ -78,7 +78,7 @@ function SimulatedPaymentForm() {
     }
   }
 
-  if (!orderId) {
+  if (orderId === null) {
     return (
       <>
         <Nav />
@@ -89,6 +89,10 @@ function SimulatedPaymentForm() {
       </>
     );
   }
+
+  // orderId === undefined: still checking window.location on mount. Render
+  // the same shell as the "order found, still loading" state below instead
+  // of nothing, so the page is never blank even for this brief moment.
 
   return (
     <>

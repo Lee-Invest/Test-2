@@ -216,8 +216,8 @@ export function BuyChallengeForm() {
               added by an admin without touching this UI, once a Program
               model backs this section). */}
           <StepHeader step={1} title="Choose your program" />
-          <div className="flex items-start gap-3 rounded-2xl border-2 border-[rgba(192,192,197,0.9)] bg-[rgba(192,192,197,0.15)] p-4">
-            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[rgba(140,140,148,0.9)] text-white">
+          <div className="flex items-start gap-3 rounded-2xl border-2 border-[#b48c46] bg-[rgba(180,140,70,0.1)] p-4">
+            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#b48c46] text-white">
               <Check size={12} />
             </div>
             <div>
@@ -478,12 +478,12 @@ function SizeCard({
       aria-pressed={selected}
       className={`relative flex flex-col items-center gap-1 rounded-2xl border-2 px-4 py-5 text-center transition ${
         selected
-          ? "border-[rgba(192,192,197,0.9)] bg-[rgba(192,192,197,0.15)]"
+          ? "border-[#b48c46] bg-[rgba(180,140,70,0.1)]"
           : "border-gray-200 bg-white hover:border-gray-300"
       }`}
     >
       {selected && (
-        <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(140,140,148,0.9)] text-white">
+        <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#b48c46] text-white">
           <Check size={12} />
         </div>
       )}
