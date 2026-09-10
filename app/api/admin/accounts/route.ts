@@ -22,16 +22,36 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAdmin();
-  if (error || !session) return NextResponse.json({ error }, { status: 403 });
+  const contentType = req.headers.get("content-type") ?? "";
+  const isFormPost = contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
 
-  const body = await req.json().catch(() => null);
+  const { session, error } = await requireAdmin();
+  if (error || !session) {
+    if (isFormPost) return NextResponse.redirect(new URL("/login?next=/admin", req.url), 303);
+    return NextResponse.json({ error }, { status: 403 });
+  }
+
+  const body = isFormPost ? Object.fromEntries((await req.formData()).entries()) : await req.json().catch(() => null);
   const parsed = accountAdminActionSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) {
+    if (isFormPost) return NextResponse.redirect(new URL("/admin?tab=accounts&error=Invalid+action.", req.url), 303);
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
 
   const { accountId, action, phase } = parsed.data;
+
+  function fail(status: number, message: string) {
+    if (isFormPost) {
+      const url = new URL("/admin", req.url);
+      url.searchParams.set("tab", "accounts");
+      url.searchParams.set("error", message);
+      return NextResponse.redirect(url, 303);
+    }
+    return NextResponse.json({ error: message }, { status });
+  }
+
   const account = await prisma.account.findUnique({ where: { id: accountId }, include: { phases: true } });
-  if (!account) return NextResponse.json({ error: "Account not found" }, { status: 404 });
+  if (!account) return fail(404, "Account not found");
 
   const currentPhase = account.phases.find((p) => p.status === "ACTIVE") ?? account.phases[0];
 
@@ -78,7 +98,7 @@ export async function POST(req: NextRequest) {
       await markOrderRefundEligible(accountId);
       break;
     case "SET_PHASE":
-      if (!phase) return NextResponse.json({ error: "phase required for SET_PHASE" }, { status: 400 });
+      if (!phase) return fail(400, "phase required for SET_PHASE");
       if (currentPhase) await prisma.challengePhase.update({ where: { id: currentPhase.id }, data: { status: "PASSED", endedAt: new Date() } });
       await prisma.challengePhase.create({
         data: {
@@ -95,10 +115,10 @@ export async function POST(req: NextRequest) {
       break;
     case "MARK_REFUNDED": {
       const acct = await prisma.account.findUnique({ where: { id: accountId }, select: { orderId: true } });
-      if (!acct?.orderId) return NextResponse.json({ error: "This account has no linked order." }, { status: 400 });
+      if (!acct?.orderId) return fail(400, "This account has no linked order.");
       const order = await prisma.order.findUnique({ where: { id: acct.orderId }, select: { refundEligibleAt: true } });
       if (!order?.refundEligibleAt) {
-        return NextResponse.json({ error: "This order is not yet eligible for a refund." }, { status: 400 });
+        return fail(400, "This order is not yet eligible for a refund.");
       }
       await prisma.order.update({ where: { id: acct.orderId }, data: { refundedAt: new Date() } });
       break;
@@ -115,5 +135,6 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  if (isFormPost) return NextResponse.redirect(new URL("/admin?tab=accounts", req.url), 303);
   return NextResponse.json({ ok: true });
 }

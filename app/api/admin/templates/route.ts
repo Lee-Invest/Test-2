@@ -17,13 +17,45 @@ export async function GET() {
   return NextResponse.json({ templates });
 }
 
-export async function POST(req: NextRequest) {
-  const { error } = await requireAdmin();
-  if (error) return NextResponse.json({ error }, { status: 403 });
+const NUMERIC_FIELDS = [
+  "accountSize",
+  "priceCents",
+  "phase1ProfitTargetPct",
+  "phase1MinTradingDays",
+  "phase2ProfitTargetPct",
+  "phase2MinTradingDays",
+  "maxDailyLossPct",
+  "maxOverallLossPct",
+  "profitSplitTraderPct",
+] as const;
 
-  const body = await req.json().catch(() => null);
+export async function POST(req: NextRequest) {
+  const contentType = req.headers.get("content-type") ?? "";
+  const isFormPost = contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
+
+  const { error } = await requireAdmin();
+  if (error) {
+    if (isFormPost) return NextResponse.redirect(new URL("/login?next=/admin", req.url), 303);
+    return NextResponse.json({ error }, { status: 403 });
+  }
+
+  let body: unknown;
+  if (isFormPost) {
+    const form = Object.fromEntries((await req.formData()).entries());
+    body = {
+      ...form,
+      active: form.active === "on",
+      ...Object.fromEntries(NUMERIC_FIELDS.map((f) => [f, Number(form[f])])),
+    };
+  } else {
+    body = await req.json().catch(() => null);
+  }
+
   const parsed = templateUpsertSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) {
+    if (isFormPost) return NextResponse.redirect(new URL("/admin?tab=templates&error=Invalid+template+data.", req.url), 303);
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
 
   const { id, ...data } = parsed.data;
 
@@ -31,6 +63,7 @@ export async function POST(req: NextRequest) {
     ? await prisma.challengeTemplate.update({ where: { id }, data })
     : await prisma.challengeTemplate.create({ data });
 
+  if (isFormPost) return NextResponse.redirect(new URL("/admin?tab=templates", req.url), 303);
   return NextResponse.json({ template });
 }
 

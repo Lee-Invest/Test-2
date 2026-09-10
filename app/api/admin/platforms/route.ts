@@ -42,17 +42,36 @@ const bodySchema = z.union([toggleSchema, feeSchema, activeSchema]);
 // /api/checkout and /api/platforms read from, so a change here takes effect
 // immediately for every trader without touching application code.
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAdmin();
-  if (error || !session) return NextResponse.json({ error }, { status: 403 });
+  const contentType = req.headers.get("content-type") ?? "";
+  const isFormPost = contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
 
-  const body = await req.json().catch(() => null);
+  const { session, error } = await requireAdmin();
+  if (error || !session) {
+    if (isFormPost) return NextResponse.redirect(new URL("/login?next=/admin", req.url), 303);
+    return NextResponse.json({ error }, { status: 403 });
+  }
+
+  let body: unknown;
+  if (isFormPost) {
+    const form = Object.fromEntries((await req.formData()).entries());
+    body = "feeCents" in form ? { ...form, feeCents: Number(form.feeCents) } : form;
+  } else {
+    body = await req.json().catch(() => null);
+  }
   const parsed = bodySchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) {
+    if (isFormPost) return NextResponse.redirect(new URL("/admin?tab=platforms&error=Invalid+action.", req.url), 303);
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
 
   if (parsed.data.action === "TOGGLE_ACTIVE") {
     const platform = await prisma.tradingPlatform.findUnique({ where: { id: parsed.data.platformId } });
-    if (!platform) return NextResponse.json({ error: "Platform not found." }, { status: 404 });
+    if (!platform) {
+      if (isFormPost) return NextResponse.redirect(new URL("/admin?tab=platforms&error=Platform+not+found.", req.url), 303);
+      return NextResponse.json({ error: "Platform not found." }, { status: 404 });
+    }
     await prisma.tradingPlatform.update({ where: { id: platform.id }, data: { active: !platform.active } });
+    if (isFormPost) return NextResponse.redirect(new URL("/admin?tab=platforms", req.url), 303);
     return NextResponse.json({ ok: true });
   }
 
@@ -85,5 +104,6 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  if (isFormPost) return NextResponse.redirect(new URL("/admin?tab=platforms", req.url), 303);
   return NextResponse.json({ ok: true });
 }

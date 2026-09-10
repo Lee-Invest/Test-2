@@ -29,12 +29,27 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAdmin();
-  if (error || !session) return NextResponse.json({ error }, { status: 403 });
+  const contentType = req.headers.get("content-type") ?? "";
+  const isFormPost = contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
 
-  const body = await req.json().catch(() => null);
+  const { session, error } = await requireAdmin();
+  if (error || !session) {
+    if (isFormPost) return NextResponse.redirect(new URL("/login?next=/admin", req.url), 303);
+    return NextResponse.json({ error }, { status: 403 });
+  }
+
+  const body = isFormPost ? Object.fromEntries((await req.formData()).entries()) : await req.json().catch(() => null);
   const parsed = payoutActionSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) {
+    if (isFormPost) {
+      const message = parsed.error.issues[0]?.message ?? "Invalid action.";
+      const url = new URL("/admin", req.url);
+      url.searchParams.set("tab", "payouts");
+      url.searchParams.set("error", message);
+      return NextResponse.redirect(url, 303);
+    }
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
 
   const { payoutId, action, notes, rejectionReason } = parsed.data;
   const statusMap = {
@@ -50,7 +65,10 @@ export async function POST(req: NextRequest) {
     where: { id: payoutId },
     include: { account: { include: { template: true } } },
   });
-  if (!existing) return NextResponse.json({ error: "Payout not found." }, { status: 404 });
+  if (!existing) {
+    if (isFormPost) return NextResponse.redirect(new URL("/admin?tab=payouts&error=Payout+not+found.", req.url), 303);
+    return NextResponse.json({ error: "Payout not found." }, { status: 404 });
+  }
 
   const isTerminal = action === "REJECT" || action === "MARK_PAID" || action === "CANCEL";
 
@@ -105,5 +123,6 @@ export async function POST(req: NextRequest) {
       : []),
   ]);
 
+  if (isFormPost) return NextResponse.redirect(new URL("/admin?tab=payouts", req.url), 303);
   return NextResponse.json({ payout, newProfitSplitPct: newSplitPct });
 }
