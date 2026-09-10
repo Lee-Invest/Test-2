@@ -6,9 +6,21 @@ import { resetPasswordSchema } from "@/lib/validation";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => null);
+  const contentType = req.headers.get("content-type") ?? "";
+  const isFormPost = contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
+
+  const body = isFormPost
+    ? Object.fromEntries((await req.formData()).entries())
+    : await req.json().catch(() => null);
   const parsed = resetPasswordSchema.safeParse(body);
   if (!parsed.success) {
+    if (isFormPost) {
+      const token = (body as { token?: string })?.token ?? "";
+      const url = new URL("/reset-password", req.url);
+      url.searchParams.set("token", token);
+      url.searchParams.set("error", parsed.error.issues[0]?.message ?? "Please check the form and try again.");
+      return NextResponse.redirect(url, 303);
+    }
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
@@ -16,6 +28,12 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.findUnique({ where: { resetToken: token } });
 
   if (!user || !user.resetTokenExpiry || user.resetTokenExpiry.getTime() < Date.now()) {
+    if (isFormPost) {
+      const url = new URL("/reset-password", req.url);
+      url.searchParams.set("token", token);
+      url.searchParams.set("error", "Invalid or expired reset token.");
+      return NextResponse.redirect(url, 303);
+    }
     return NextResponse.json({ error: "Invalid or expired reset token." }, { status: 400 });
   }
 
@@ -25,5 +43,6 @@ export async function POST(req: NextRequest) {
     data: { passwordHash, resetToken: null, resetTokenExpiry: null },
   });
 
+  if (isFormPost) return NextResponse.redirect(new URL("/login?reset=1", req.url), 303);
   return NextResponse.json({ ok: true });
 }

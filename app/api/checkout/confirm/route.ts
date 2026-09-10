@@ -44,27 +44,36 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const contentType = req.headers.get("content-type") ?? "";
+  const isFormPost = contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
+
   if (isStripeConfigured) {
+    if (isFormPost) return NextResponse.redirect(new URL("/pricing", req.url), 303);
     return NextResponse.json({ error: "Not available: a real Stripe account is configured." }, { status: 403 });
   }
 
   const session = await getServerSession(authOptions);
   if (!session?.user) {
+    if (isFormPost) return NextResponse.redirect(new URL("/login?next=/pricing", req.url), 303);
     return NextResponse.json({ error: "You must be signed in." }, { status: 401 });
   }
 
-  const body = await req.json().catch(() => null);
+  const body = isFormPost ? { orderId: (await req.formData()).get("orderId") } : await req.json().catch(() => null);
   const parsed = confirmSchema.safeParse(body);
   if (!parsed.success) {
+    if (isFormPost) return NextResponse.redirect(new URL("/pricing?error=orderId+is+required.", req.url), 303);
     return NextResponse.json({ error: "orderId is required." }, { status: 400 });
   }
 
   const order = await prisma.order.findUnique({ where: { id: parsed.data.orderId } });
   if (!order || order.userId !== session.user.id) {
+    if (isFormPost) return NextResponse.redirect(new URL("/pricing?error=Order+not+found.", req.url), 303);
     return NextResponse.json({ error: "Order not found." }, { status: 404 });
   }
 
+
   await provisionOrder(order.id);
 
+  if (isFormPost) return NextResponse.redirect(new URL(`/checkout/success?orderId=${order.id}`, req.url), 303);
   return NextResponse.json({ ok: true, orderId: order.id });
 }

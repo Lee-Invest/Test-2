@@ -17,7 +17,7 @@ import { Nav } from "@/components/nav";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { next?: string; error?: string; registered?: string; email?: string };
+  searchParams: { next?: string; error?: string; registered?: string; reset?: string; email?: string };
 }) {
   const csrfToken = headers().get("x-csrf-token") ?? "";
   const callbackUrl = searchParams.next || "/dashboard";
@@ -30,6 +30,11 @@ export default async function LoginPage({
         {searchParams.registered && (
           <p className="mt-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
             Account created. Log in below to continue.
+          </p>
+        )}
+        {searchParams.reset && (
+          <p className="mt-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+            Password updated. Log in with your new password.
           </p>
         )}
         <form action="/api/auth/callback/credentials" method="POST" className="mt-8 space-y-4">

@@ -1,84 +1,24 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { formatCents } from "@/lib/utils";
 
-interface OrderSummary {
-  orderId: string;
-  templateName: string;
-  accountSize: number;
-  totalCents: number;
-  status: string;
-}
+// Server-rendered: the order is looked up directly here instead of via a
+// client-side fetch after mount, and "Pay" is a native <form> POST to
+// /api/checkout/confirm (extended to accept a form post and redirect to
+// /checkout/success), so nothing on this page depends on client JS.
+export default async function SimulatedPaymentPage({
+  searchParams,
+}: {
+  searchParams: { orderId?: string; error?: string };
+}) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect(`/login?next=/checkout/pay${searchParams.orderId ? `?orderId=${searchParams.orderId}` : ""}`);
 
-function formatCardNumber(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 16);
-  return digits.replace(/(.{4})/g, "$1 ").trim();
-}
-
-function formatExpiry(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 4);
-  if (digits.length <= 2) return digits;
-  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-}
-
-// Reads ?orderId= via window.location instead of useSearchParams() so this
-// page never needs a Suspense boundary around that read — a
-// useSearchParams()-in-Suspense page renders nothing from the server until
-// client JS finishes hydrating, which is what made pages like this and
-// /login appear blank if hydration was ever slow or failed.
-export default function SimulatedPaymentPage() {
-  const router = useRouter();
-  const [orderId, setOrderId] = useState<string | null | undefined>(undefined);
-
-  const [order, setOrder] = useState<OrderSummary | null>(null);
-  const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
-  const [expiry, setExpiry] = useState("12/34");
-  const [cvc, setCvc] = useState("123");
-  const [name, setName] = useState("");
-  const [paying, setPaying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setOrderId(new URLSearchParams(window.location.search).get("orderId"));
-  }, []);
-
-  useEffect(() => {
-    if (!orderId) return;
-    fetch(`/api/checkout/confirm?orderId=${orderId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.error) setError(data.error);
-        else setOrder(data);
-      });
-  }, [orderId]);
-
-  async function handlePay(e: React.FormEvent) {
-    e.preventDefault();
-    if (!orderId) return;
-    setPaying(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/checkout/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Payment could not be confirmed.");
-        return;
-      }
-      router.push(`/checkout/success?orderId=${orderId}`);
-    } finally {
-      setPaying(false);
-    }
-  }
-
-  if (orderId === null) {
+  if (!searchParams.orderId) {
     return (
       <>
         <Nav />
@@ -90,40 +30,48 @@ export default function SimulatedPaymentPage() {
     );
   }
 
-  // orderId === undefined: still checking window.location on mount. Render
-  // the same shell as the "order found, still loading" state below instead
-  // of nothing, so the page is never blank even for this brief moment.
+  const order = await prisma.order.findUnique({
+    where: { id: searchParams.orderId },
+    include: { template: true },
+  });
+
+  if (!order || order.userId !== session.user.id) {
+    return (
+      <>
+        <Nav />
+        <main className="mx-auto max-w-md px-4 py-24 text-center sm:px-6">
+          <p className="text-gray-600">Order not found. Start again from the pricing page.</p>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
       <Nav />
       <main className="mx-auto max-w-md px-4 py-16 sm:px-6">
         <div className="mb-6 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-          <strong>Simulated payment.</strong> No real Stripe account is configured for this
-          environment — no card data is collected, transmitted, or charged anywhere. Submitting
-          this form provisions your challenge account directly, the same way a real payment
-          webhook would.
+          <strong>Simulated payment.</strong> No real Stripe account is configured for this environment — no card
+          data is collected, transmitted, or charged anywhere. Submitting this form provisions your challenge account
+          directly, the same way a real payment webhook would.
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <h1 className="text-lg font-semibold text-gray-900">Complete your payment</h1>
 
-          {order ? (
-            <div className="mt-4 flex items-center justify-between border-b border-gray-200 pb-4 text-sm">
-              <span className="text-gray-600">{order.templateName}</span>
-              <span className="font-semibold text-gray-900">{formatCents(order.totalCents)}</span>
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-gray-500">Loading order…</p>
-          )}
+          <div className="mt-4 flex items-center justify-between border-b border-gray-200 pb-4 text-sm">
+            <span className="text-gray-600">{order.template.name}</span>
+            <span className="font-semibold text-gray-900">{formatCents(order.totalCents)}</span>
+          </div>
 
-          <form onSubmit={handlePay} className="mt-6 space-y-4">
+          <form action="/api/checkout/confirm" method="POST" className="mt-6 space-y-4">
+            <input type="hidden" name="orderId" value={order.id} />
             <div>
               <label className="mb-1 block text-xs text-gray-600">Cardholder name</label>
               <input
                 required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                name="cardholderName"
                 placeholder="Jane Trader"
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[var(--brand-primary)]"
               />
@@ -132,9 +80,8 @@ export default function SimulatedPaymentPage() {
               <label className="mb-1 block text-xs text-gray-600">Card number</label>
               <input
                 required
-                value={cardNumber}
-                onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                placeholder="4242 4242 4242 4242"
+                name="cardNumber"
+                defaultValue="4242 4242 4242 4242"
                 inputMode="numeric"
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-mono text-gray-900 outline-none focus:border-[var(--brand-primary)]"
               />
@@ -144,9 +91,8 @@ export default function SimulatedPaymentPage() {
                 <label className="mb-1 block text-xs text-gray-600">Expiry</label>
                 <input
                   required
-                  value={expiry}
-                  onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-                  placeholder="MM/YY"
+                  name="expiry"
+                  defaultValue="12/34"
                   inputMode="numeric"
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-mono text-gray-900 outline-none focus:border-[var(--brand-primary)]"
                 />
@@ -155,23 +101,21 @@ export default function SimulatedPaymentPage() {
                 <label className="mb-1 block text-xs text-gray-600">CVC</label>
                 <input
                   required
-                  value={cvc}
-                  onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="123"
+                  name="cvc"
+                  defaultValue="123"
                   inputMode="numeric"
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-mono text-gray-900 outline-none focus:border-[var(--brand-primary)]"
                 />
               </div>
             </div>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {searchParams.error && <p className="text-sm text-red-600">{searchParams.error}</p>}
 
             <button
               type="submit"
-              disabled={paying || !order}
-              className="w-full rounded-md bg-[var(--brand-primary)] px-6 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+              className="w-full rounded-md bg-[var(--brand-primary)] px-6 py-3 text-sm font-semibold text-white hover:opacity-90"
             >
-              {paying ? "Processing…" : order ? `Pay ${formatCents(order.totalCents)}` : "Pay"}
+              Pay {formatCents(order.totalCents)}
             </button>
           </form>
         </div>

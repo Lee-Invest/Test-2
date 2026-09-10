@@ -10,13 +10,18 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
   const rl = rateLimit(`forgot:${ip}`, 5, 60_000);
+  const contentType = req.headers.get("content-type") ?? "";
+  const isFormPost = contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
+
   if (!rl.allowed) {
+    if (isFormPost) return NextResponse.redirect(new URL("/forgot-password?error=Too+many+requests.", req.url), 303);
     return NextResponse.json({ error: "Too many requests." }, { status: 429 });
   }
 
-  const body = await req.json().catch(() => null);
+  const body = isFormPost ? { email: (await req.formData()).get("email") } : await req.json().catch(() => null);
   const parsed = forgotPasswordSchema.safeParse(body);
   if (!parsed.success) {
+    if (isFormPost) return NextResponse.redirect(new URL("/forgot-password?error=Enter+a+valid+email.", req.url), 303);
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
@@ -36,5 +41,6 @@ export async function POST(req: NextRequest) {
     await sendMail(email, "Reset your ApexFund password", `Reset your password: ${resetUrl}`);
   }
 
+  if (isFormPost) return NextResponse.redirect(new URL("/forgot-password?sent=1", req.url), 303);
   return NextResponse.json({ ok: true });
 }
