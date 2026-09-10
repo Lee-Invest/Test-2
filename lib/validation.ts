@@ -17,12 +17,34 @@ export const resetPasswordSchema = z.object({
 
 export const checkoutSchema = z.object({
   templateId: z.string().min(1),
+  programId: z.string().optional(),
   couponCode: z.string().optional(),
   platformId: z.string().optional(),
   addonIds: z.array(z.string().min(1)).max(20).optional(),
+  paymentMethod: z.string().optional(),
   agreedToRules: z.literal(true, {
     message: "You must agree to the Funded Trader Agreement and Trading Rules to continue.",
   }),
+});
+
+export const programUpsertSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(2),
+  slug: z.string().min(2),
+  description: z.string().min(1),
+  phaseCount: z.number().int().min(0).max(2),
+  payoutModel: z.string().min(1),
+  bestFor: z.string().optional().default(""),
+  mostPopular: z.boolean().optional(),
+  active: z.boolean().optional(),
+});
+
+export const saveConfigurationSchema = z.object({
+  name: z.string().min(1).max(80),
+  templateId: z.string().min(1),
+  platformId: z.string().optional(),
+  programId: z.string().optional(),
+  addonIds: z.array(z.string().min(1)).max(20).optional(),
 });
 
 export const templateUpsertSchema = z.object({

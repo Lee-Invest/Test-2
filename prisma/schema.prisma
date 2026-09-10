@@ -103,10 +103,11 @@ model User {
   resetToken       String?   @unique
   resetTokenExpiry DateTime?
 
-  accounts      Account[]
-  orders        Order[]
-  notifications Notification[]
-  auditLogs     AuditLog[]
+  accounts            Account[]
+  orders              Order[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  savedConfigurations SavedConfiguration[]
 
   @@index([email])
 }
@@ -167,6 +168,9 @@ model TradingPlatform {
   features  String[]
   badges    String[]
   accessUrl String? // e.g. a web-platform login link shown after purchase
+  downloadUrl String? // desktop/mobile app download link, if any
+  webUrl      String? // browser-based access link, if any
+  setupSteps  String[] @default([]) // ordered "how to connect" instructions
   active    Boolean  @default(true)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
@@ -175,6 +179,71 @@ model TradingPlatform {
   availability PlatformAvailability[]
   orders       Order[]
   accounts     Account[]
+}
+
+// A purchasable evaluation program (2-Step, 1-Step, Instant Funding,
+// Futures, ...). phaseCount drives real behavior in the risk engine /
+// provisioning: 2 = standard two-phase evaluation, 1 = a single evaluation
+// phase before funding, 0 = funded immediately with no evaluation. Admin
+// creates/activates/deactivates these — never hardcoded in application UI.
+model ChallengeProgram {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  phaseCount  Int      @default(2)
+  payoutModel String   @default("Profit split")
+  bestFor     String   @default("")
+  mostPopular Boolean  @default(false)
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders   Order[]
+  accounts Account[]
+}
+
+// A payment method shown at checkout. Only `enabled` methods are ever shown
+// to traders — this is a display/architecture layer (which methods exist
+// and their labels/order), not a live payment gateway integration.
+model PaymentMethod {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  label     String
+  enabled   Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A trader's saved or shared configurator selection. userId is set for a
+// "My saved challenges" entry; shareToken is set (and userId may be null)
+// for a link generated via "Share" — never put anything sensitive in the
+// token itself, it's just a random lookup key.
+model SavedConfiguration {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  name       String
+  templateId String
+  platformId String?
+  programId  String?
+  addonIds   String[] @default([])
+  shareToken String?  @unique
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Configurable "buy another account" discount by position (2 = second
+// account, 3 = third, ...). Applied automatically at checkout based on how
+// many previous paid orders the trader already has — never hardcoded.
+model MultiAccountDiscount {
+  id           String  @id @default(cuid())
+  accountIndex Int     @unique
+  discountPct  Decimal @db.Decimal(5, 2)
+  active       Boolean @default(true)
 }
 
 // Server-side availability engine: whether a given (template, platform)
@@ -269,10 +338,14 @@ model Order {
   user       User              @relation(fields: [userId], references: [id])
   templateId String
   template   ChallengeTemplate @relation(fields: [templateId], references: [id])
+  programId  String?
+  program    ChallengeProgram? @relation(fields: [programId], references: [id])
   couponId   String?
   coupon     Coupon?           @relation(fields: [couponId], references: [id])
   platformId String?
   platform   TradingPlatform?  @relation(fields: [platformId], references: [id])
+
+  paymentMethod String? // free-text key of the PaymentMethod chosen at checkout
 
   subtotalCents    Int
   discountCents    Int         @default(0)
@@ -321,10 +394,20 @@ model Account {
   user       User              @relation(fields: [userId], references: [id])
   templateId String
   template   ChallengeTemplate @relation(fields: [templateId], references: [id])
+  programId  String?
+  program    ChallengeProgram? @relation(fields: [programId], references: [id])
   orderId    String?           @unique
   order      Order?            @relation(fields: [orderId], references: [id])
   platformId String?
   platform   TradingPlatform?  @relation(fields: [platformId], references: [id])
+
+  // Simulated trading-server credentials shown once on the dashboard after
+  // provisioning (see lib/provisioning.ts). This environment has no real
+  // broker integration — these are generated display values, not a live
+  // login to any actual trading server.
+  platformLogin           String?
+  platformServerName      String?
+  platformPasswordDisplay String?
 
   startingBalanceCents Int
   currentBalanceCents  Int // realized balance (closed trades only)

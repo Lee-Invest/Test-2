@@ -26,6 +26,7 @@ export async function checkAndAdvancePhase(accountId: string): Promise<void> {
     where: { id: accountId },
     include: {
       template: true,
+      program: true,
       phases: { orderBy: { createdAt: "desc" } },
       trades: true,
     },
@@ -90,7 +91,7 @@ export async function checkAndAdvancePhase(accountId: string): Promise<void> {
 
   if (risk.phasePassed) {
     assertValidTransition(currentPhase.status, "PASSED");
-    const next = nextPhase(currentPhase.type as PhaseType);
+    const next = nextPhase(currentPhase.type as PhaseType, account.program?.phaseCount ?? 2);
 
     const writes: Prisma.PrismaPromise<unknown>[] = [
       prisma.challengePhase.update({

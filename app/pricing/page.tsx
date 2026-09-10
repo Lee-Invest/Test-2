@@ -7,7 +7,24 @@ import { Footer } from "@/components/footer";
 import { formatCents } from "@/lib/utils";
 import { STATIC_TEMPLATES } from "@/lib/static-templates";
 import { STATIC_PLATFORMS, STATIC_PLATFORM_AVAILABILITY } from "@/lib/static-platforms";
+import { STATIC_ADDONS } from "@/lib/static-addons";
+import { getMultiAccountDiscountPct } from "@/lib/multi-account-discount";
 import { ConfiguratorClient } from "@/components/configurator-client";
+import type { ChallengeProgram, PaymentMethod } from "@prisma/client";
+
+// Fallback if the ChallengeProgram table is briefly unreachable or empty
+// (e.g. before the migration/seed has run) — matches the row the migration
+// seeds by default, so display never breaks even if the query does.
+const FALLBACK_PROGRAM: Pick<ChallengeProgram, "id" | "name" | "slug" | "description" | "phaseCount" | "payoutModel" | "bestFor" | "mostPopular"> = {
+  id: "",
+  name: "2-Step Challenge",
+  slug: "2-step",
+  description: "Classic evaluation for traders who prefer a structured, two-phase path to a funded account.",
+  phaseCount: 2,
+  payoutModel: "Profit split",
+  bestFor: "Structured traders",
+  mostPopular: true,
+};
 
 const WHATS_INCLUDED = [
   "2 Evaluation Phases",
@@ -60,7 +77,17 @@ const FAQS = [
 export default async function BuyChallengePage({
   searchParams,
 }: {
-  searchParams: { template?: string; platform?: string; coupon?: string; error?: string };
+  searchParams: {
+    template?: string;
+    platform?: string;
+    coupon?: string;
+    program?: string;
+    addon?: string | string[];
+    payment?: string;
+    error?: string;
+    saved?: string;
+    shareUrl?: string;
+  };
 }) {
   const session = await getServerSession(authOptions);
   const templates = STATIC_TEMPLATES;
@@ -69,6 +96,31 @@ export default async function BuyChallengePage({
   const analysisPlatforms = STATIC_PLATFORMS.filter((p) => p.mode === "ANALYSIS_ONLY");
   const platformId = executionPlatforms.some((p) => p.id === searchParams.platform) ? (searchParams.platform ?? "") : "";
   const couponCode = searchParams.coupon ?? "";
+
+  // Admin-configurable programs, payment methods, add-ons — all resilient
+  // to a briefly unreachable database (falls back to sane display data
+  // rather than breaking the page, same rationale as STATIC_TEMPLATES).
+  const programs = await prisma.challengeProgram
+    .findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } })
+    .catch(() => [] as ChallengeProgram[]);
+  const activePrograms = programs.length > 0 ? programs : [FALLBACK_PROGRAM as ChallengeProgram];
+  const selectedProgram =
+    activePrograms.find((p) => p.id === searchParams.program) ??
+    activePrograms.find((p) => p.mostPopular) ??
+    activePrograms[0];
+
+  const paymentMethods = await prisma.paymentMethod
+    .findMany({ where: { enabled: true }, orderBy: { sortOrder: "asc" } })
+    .catch(() => [] as PaymentMethod[]);
+  const selectedPayment = paymentMethods.some((m) => m.key === searchParams.payment) ? searchParams.payment! : paymentMethods[0]?.key ?? "";
+
+  const selectedAddonIds = (Array.isArray(searchParams.addon) ? searchParams.addon : searchParams.addon ? [searchParams.addon] : []).filter(
+    (id) => STATIC_ADDONS.some((a) => a.id === id)
+  );
+  const selectedAddons = STATIC_ADDONS.filter((a) => selectedAddonIds.includes(a.id));
+  const addonTotalCents = selectedAddons.reduce((sum, a) => sum + a.priceCents, 0);
+
+  const multiAccountDiscount = session?.user ? await getMultiAccountDiscountPct(session.user.id) : null;
 
   const platformAvail = platformId
     ? STATIC_PLATFORM_AVAILABILITY.find((a) => a.templateId === selected.id && a.platformId === platformId)
@@ -101,7 +153,11 @@ export default async function BuyChallengePage({
       couponError = coupon ? calc.reason ?? "Coupon not valid." : "Coupon not found.";
     }
   }
-  const totalCents = selected.priceCents - discountCents + platformFeeCents;
+  const couponApplied = Boolean(couponCode) && !couponError;
+  if (!couponApplied && multiAccountDiscount) {
+    discountCents = Math.round((selected.priceCents * multiAccountDiscount.pct) / 100);
+  }
+  const totalCents = selected.priceCents - discountCents + platformFeeCents + addonTotalCents;
 
   return (
     <>
@@ -132,35 +188,58 @@ export default async function BuyChallengePage({
           {/* LEFT / CENTER — configuration */}
           <div className="space-y-8">
             <Section step={1} title="Choose your program">
-              <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-semibold text-gray-900">2-Step Challenge</h3>
-                      <span className="rounded-full bg-[var(--brand-accent)]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--brand-accent)]">
-                        Most Popular
-                      </span>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {activePrograms.map((program) => (
+                  <label
+                    key={program.id || program.slug}
+                    className="relative cursor-pointer rounded-2xl border border-white/60 bg-white/70 p-5 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl transition has-[:checked]:border-[var(--brand-primary)] has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/30"
+                  >
+                    <input
+                      type="radio"
+                      name="program"
+                      form="configurator-form"
+                      value={program.id}
+                      defaultChecked={program.id === selectedProgram.id}
+                      className="peer sr-only"
+                    />
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-semibold text-gray-900">{program.name}</h3>
+                          {program.mostPopular && (
+                            <span className="rounded-full bg-[var(--brand-accent)]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--brand-accent)]">
+                              Most Popular
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-sm text-gray-600">{program.description}</p>
+                      </div>
+                      <div className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white peer-checked:flex">
+                        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                          <path d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.4 7.4a1 1 0 0 1-1.4 0L3.3 9.5a1 1 0 1 1 1.4-1.4l3.9 3.9 6.7-6.7a1 1 0 0 1 1.4 0Z" />
+                        </svg>
+                      </div>
                     </div>
-                    <p className="mt-1 text-sm text-gray-600">
-                      Classic evaluation for traders who prefer a structured, two-phase path to a funded account.
-                    </p>
-                  </div>
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white">
-                    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                      <path d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.4 7.4a1 1 0 0 1-1.4 0L3.3 9.5a1 1 0 1 1 1.4-1.4l3.9 3.9 6.7-6.7a1 1 0 0 1 1.4 0Z" />
-                    </svg>
-                  </div>
-                </div>
-                <dl className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
-                  <MiniStat label="Phases" value="2" />
-                  <MiniStat label="Payout model" value="Profit split" />
-                  <MiniStat label="Best for" value="Structured traders" />
-                  <MiniStat label="Reset option" value="Available" />
-                </dl>
+                    <dl className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+                      <MiniStat label="Phases" value={program.phaseCount === 0 ? "0 (Instant)" : program.phaseCount.toString()} />
+                      <MiniStat label="Payout model" value={program.payoutModel} />
+                      <MiniStat label="Best for" value={program.bestFor || "—"} />
+                      <MiniStat label="Reset option" value="Available" />
+                    </dl>
+                  </label>
+                ))}
               </div>
+              <button
+                type="submit"
+                form="configurator-form"
+                className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Apply program selection
+              </button>
               <p className="mt-3 text-xs text-gray-400">
-                1-Step, Instant Funding, and Futures programs are configured by ApexFund and will appear here once
-                enabled for your account.
+                <a href="/pricing/wizard" className="underline hover:text-gray-600">
+                  Not sure which one fits you? Help me choose →
+                </a>
               </p>
             </Section>
 
@@ -312,10 +391,80 @@ export default async function BuyChallengePage({
               <ComparePlatforms platforms={STATIC_PLATFORMS} />
             </Section>
 
-            <Section step={4} title="Coupon code">
+            <Section step={4} title="Add-ons">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {STATIC_ADDONS.map((addon) => (
+                  <label
+                    key={addon.id}
+                    className="cursor-pointer rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-xl transition hover:bg-white/80 has-[:checked]:border-[var(--brand-primary)] has-[:checked]:bg-white has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/30"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-gray-900">{addon.name}</h3>
+                      <input
+                        type="checkbox"
+                        name="addon"
+                        form="configurator-form"
+                        value={addon.id}
+                        defaultChecked={selectedAddonIds.includes(addon.id)}
+                        className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">{addon.description}</p>
+                    <p className="mt-2 text-sm font-semibold text-gray-900">
+                      {formatCents(addon.priceCents)}
+                      {addon.billing === "MONTHLY" && <span className="font-normal text-gray-400">/mo</span>}
+                    </p>
+                  </label>
+                ))}
+              </div>
+              <button
+                type="submit"
+                form="configurator-form"
+                className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Apply add-ons
+              </button>
+            </Section>
+
+            {paymentMethods.length > 0 && (
+              <Section step={5} title="Payment method">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {paymentMethods.map((m) => (
+                    <label
+                      key={m.id}
+                      className="cursor-pointer rounded-2xl border border-white/60 bg-white/60 p-3 text-center text-sm font-medium text-gray-700 shadow-sm backdrop-blur-xl transition hover:bg-white/80 has-[:checked]:border-[var(--brand-primary)] has-[:checked]:bg-white has-[:checked]:text-gray-900 has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/30"
+                    >
+                      <input
+                        type="radio"
+                        name="payment"
+                        form="configurator-form"
+                        value={m.key}
+                        defaultChecked={m.key === selectedPayment}
+                        className="peer sr-only"
+                      />
+                      {m.label}
+                    </label>
+                  ))}
+                </div>
+                <button
+                  type="submit"
+                  form="configurator-form"
+                  className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Apply payment method
+                </button>
+              </Section>
+            )}
+
+            <Section step={6} title="Coupon code">
               <form method="GET" action="/pricing" className="flex flex-col gap-3 sm:flex-row">
                 <input type="hidden" name="template" value={selected.id} />
                 {platformId && <input type="hidden" name="platform" value={platformId} />}
+                {selectedProgram.id && <input type="hidden" name="program" value={selectedProgram.id} />}
+                {selectedAddonIds.map((id) => (
+                  <input key={id} type="hidden" name="addon" value={id} />
+                ))}
+                {selectedPayment && <input type="hidden" name="payment" value={selectedPayment} />}
                 <input
                   name="coupon"
                   defaultValue={couponCode}
@@ -337,6 +486,23 @@ export default async function BuyChallengePage({
               )}
             </Section>
 
+            <Section step={7} title="Save or share this configuration">
+              <SaveShareForm
+                templateId={selected.id}
+                platformId={platformId}
+                programId={selectedProgram.id}
+                addonIds={selectedAddonIds}
+                loggedIn={Boolean(session?.user)}
+                shareUrl={searchParams.shareUrl}
+                saved={Boolean(searchParams.saved)}
+              />
+              <p className="mt-3 text-xs text-gray-400">
+                <a href="/pricing/compare" className="underline hover:text-gray-600">
+                  Compare up to 3 account sizes side by side →
+                </a>
+              </p>
+            </Section>
+
             <TrustSection />
             <FaqSection />
           </div>
@@ -347,6 +513,10 @@ export default async function BuyChallengePage({
             platformId={platformId}
             platforms={executionPlatforms}
             platformFeeCents={platformFeeCents}
+            program={selectedProgram}
+            addons={selectedAddons}
+            addonTotalCents={addonTotalCents}
+            paymentMethod={selectedPayment}
             discountCents={discountCents}
             couponCode={couponCode}
             couponError={couponError}
@@ -484,6 +654,10 @@ function OrderSummary({
   platformId,
   platforms,
   platformFeeCents,
+  program,
+  addons,
+  addonTotalCents,
+  paymentMethod,
   discountCents,
   couponCode,
   couponError,
@@ -494,6 +668,10 @@ function OrderSummary({
   platformId: string;
   platforms: typeof STATIC_PLATFORMS;
   platformFeeCents: number;
+  program: ChallengeProgram;
+  addons: (typeof STATIC_ADDONS)[number][];
+  addonTotalCents: number;
+  paymentMethod: string;
   discountCents: number;
   couponCode: string;
   couponError: string | null;
@@ -501,7 +679,8 @@ function OrderSummary({
   loggedIn: boolean;
 }) {
   const platform = platforms.find((p) => p.id === platformId);
-  const couponApplied = Boolean(couponCode) && !couponError;
+  const hasValidCoupon = Boolean(couponCode) && !couponError;
+  const discountLabel = hasValidCoupon ? "Discount (coupon)" : "Discount (repeat account)";
   // Illustrative only — see the disclaimer below. Based on hitting the
   // Phase 2 profit target on the chosen account size at an 80% split.
   const estimatedPayoutCents = Math.round(selected.accountSize * 100 * (Number(selected.phase2ProfitTargetPct) / 100) * 0.8);
@@ -515,9 +694,14 @@ function OrderSummary({
 
       <div className="mt-4 space-y-2 text-sm">
         <SummaryRow label="Account" value={`$${selected.accountSize.toLocaleString()}`} field="summary-size" />
-        <SummaryRow label="Program" value="2-Step" field="summary-program" />
+        <SummaryRow label="Program" value={program.name} field="summary-program" />
         <SummaryRow label="Platform" value={platform ? platform.name : "No preference"} field="summary-platform" />
-        <SummaryRow label="Add-ons" value="None" field="summary-addons" />
+        <SummaryRow
+          label="Add-ons"
+          value={addons.length > 0 ? addons.map((a) => a.name).join(", ") : "None"}
+          field="summary-addons"
+        />
+        {paymentMethod && <SummaryRow label="Payment" value={paymentMethod.replace("_", " ")} field="summary-payment" />}
       </div>
 
       <div className="mt-4 space-y-2 border-t border-gray-200 pt-4 text-sm">
@@ -525,8 +709,9 @@ function OrderSummary({
         {platformFeeCents > 0 && (
           <SummaryRow label="Platform fee" value={formatCents(platformFeeCents)} field="summary-platform-fee" />
         )}
-        {couponApplied && (
-          <SummaryRow label="Discount" value={`-${formatCents(discountCents)}`} field="summary-discount" negative />
+        {addonTotalCents > 0 && <SummaryRow label="Add-ons" value={formatCents(addonTotalCents)} field="summary-addon-total" />}
+        {discountCents > 0 && (
+          <SummaryRow label={discountLabel} value={`-${formatCents(discountCents)}`} field="summary-discount" negative />
         )}
       </div>
 
@@ -562,7 +747,12 @@ function OrderSummary({
       <form action="/api/checkout" method="POST" className="mt-4 space-y-3 border-t border-gray-200 pt-4">
         <input type="hidden" name="templateId" value={selected.id} />
         {platformId && <input type="hidden" name="platformId" value={platformId} />}
-        {couponApplied && <input type="hidden" name="couponCode" value={couponCode} />}
+        {program.id && <input type="hidden" name="programId" value={program.id} />}
+        {addons.map((a) => (
+          <input key={a.id} type="hidden" name="addonIds" value={a.id} />
+        ))}
+        {paymentMethod && <input type="hidden" name="paymentMethod" value={paymentMethod} />}
+        {hasValidCoupon && <input type="hidden" name="couponCode" value={couponCode} />}
 
         <label className="flex items-start gap-2 rounded-md p-1 text-xs text-gray-700">
           <input required name="agreedToRules" type="checkbox" className="mt-0.5 h-4 w-4 rounded border-gray-300" />
@@ -650,5 +840,77 @@ function FaqSection() {
         ))}
       </div>
     </section>
+  );
+}
+
+function SaveShareForm({
+  templateId,
+  platformId,
+  programId,
+  addonIds,
+  loggedIn,
+  shareUrl,
+  saved,
+}: {
+  templateId: string;
+  platformId: string;
+  programId: string;
+  addonIds: string[];
+  loggedIn: boolean;
+  shareUrl?: string;
+  saved: boolean;
+}) {
+  const hiddenFields = (
+    <>
+      <input type="hidden" name="templateId" value={templateId} />
+      {platformId && <input type="hidden" name="platformId" value={platformId} />}
+      {programId && <input type="hidden" name="programId" value={programId} />}
+      {addonIds.map((id) => (
+        <input key={id} type="hidden" name="addonIds" value={id} />
+      ))}
+    </>
+  );
+
+  return (
+    <div className="rounded-2xl border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-xl">
+      {saved && <p className="mb-3 text-sm text-green-700">Saved to your dashboard as one of your challenges.</p>}
+      {shareUrl && (
+        <p className="mb-3 break-all text-sm text-gray-700">
+          Share link: <span className="font-mono text-xs text-[var(--brand-primary)]">{shareUrl}</span>
+        </p>
+      )}
+      <div className="flex flex-col gap-3 sm:flex-row">
+        {loggedIn ? (
+          <form action="/api/configurations" method="POST" className="flex flex-1 gap-2">
+            {hiddenFields}
+            <input type="hidden" name="action" value="save" />
+            <input
+              name="name"
+              placeholder="Name this configuration"
+              required
+              className="flex-1 rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[var(--brand-primary)]"
+            />
+            <button type="submit" className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Save
+            </button>
+          </form>
+        ) : (
+          <a
+            href="/login?next=/pricing"
+            className="flex-1 rounded-xl border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Log in to save this configuration
+          </a>
+        )}
+        <form action="/api/configurations" method="POST">
+          {hiddenFields}
+          <input type="hidden" name="action" value="share" />
+          <input type="hidden" name="name" value="Shared configuration" />
+          <button type="submit" className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            Share
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }

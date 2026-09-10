@@ -2,8 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { Nav } from "@/components/nav";
 import { formatCents } from "@/lib/utils";
 
-type Tab = "analytics" | "templates" | "platforms" | "accounts" | "payouts";
-const TABS: Tab[] = ["analytics", "templates", "platforms", "accounts", "payouts"];
+type Tab = "analytics" | "templates" | "programs" | "platforms" | "payments" | "accounts" | "payouts";
+const TABS: Tab[] = ["analytics", "templates", "programs", "platforms", "payments", "accounts", "payouts"];
 
 // Server-rendered, same reasoning as the rest of the site: every tab here
 // previously fetched its own data client-side and mutated via fetch()
@@ -46,7 +46,9 @@ export default async function AdminPage({
         <div className="mt-8">
           {tab === "analytics" && <Analytics />}
           {tab === "templates" && <Templates />}
+          {tab === "programs" && <Programs />}
           {tab === "platforms" && <Platforms />}
+          {tab === "payments" && <PaymentMethods />}
           {tab === "accounts" && <Accounts />}
           {tab === "payouts" && <Payouts />}
         </div>
@@ -138,6 +140,101 @@ function Field({ label, name, defaultValue }: { label: string; name: string; def
         defaultValue={defaultValue}
         className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900"
       />
+    </div>
+  );
+}
+
+async function Programs() {
+  const programs = await prisma.challengeProgram.findMany({ orderBy: { sortOrder: "asc" } });
+
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-gray-500">
+        Phase count drives real behavior: 2 = standard two-phase evaluation, 1 = a single phase before funding, 0 =
+        funded immediately with no evaluation.
+      </p>
+      {programs.map((p) => (
+        <form key={p.id} action="/api/admin/programs" method="POST" className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <input type="hidden" name="id" value={p.id} />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Name" name="name" defaultValue={p.name} />
+            <Field label="Slug" name="slug" defaultValue={p.slug} />
+            <Field label="Description" name="description" defaultValue={p.description} />
+            <Field label="Payout model" name="payoutModel" defaultValue={p.payoutModel} />
+            <Field label="Best for" name="bestFor" defaultValue={p.bestFor} />
+            <Field label="Phase count (0/1/2)" name="phaseCount" defaultValue={p.phaseCount} />
+          </div>
+          <div className="mt-3 flex items-center gap-4 text-xs text-gray-600">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="active" defaultChecked={p.active} /> Active
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="mostPopular" defaultChecked={p.mostPopular} /> Most Popular
+            </label>
+          </div>
+          <button
+            type="submit"
+            className="mt-4 rounded-md bg-[var(--brand-primary)] px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90"
+          >
+            Save
+          </button>
+        </form>
+      ))}
+
+      <form action="/api/admin/programs" method="POST" className="rounded-lg border border-dashed border-gray-300 bg-white p-4">
+        <h3 className="text-sm font-semibold text-gray-900">Add a program</h3>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Name" name="name" defaultValue="" />
+          <Field label="Slug" name="slug" defaultValue="" />
+          <Field label="Description" name="description" defaultValue="" />
+          <Field label="Payout model" name="payoutModel" defaultValue="Profit split" />
+          <Field label="Best for" name="bestFor" defaultValue="" />
+          <Field label="Phase count (0/1/2)" name="phaseCount" defaultValue={2} />
+        </div>
+        <button
+          type="submit"
+          className="mt-4 rounded-md border border-gray-300 px-4 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        >
+          Create program
+        </button>
+      </form>
+    </div>
+  );
+}
+
+async function PaymentMethods() {
+  const methods = await prisma.paymentMethod.findMany({ orderBy: { sortOrder: "asc" } });
+
+  return (
+    <div>
+      <p className="mb-4 text-sm text-gray-500">
+        Only enabled methods appear at checkout. Enabling a method here is a display/architecture toggle — it does
+        not by itself wire up a live payment gateway integration.
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="text-gray-400">
+            <tr>
+              <th className="py-2 pr-4">Method</th>
+              <th className="py-2 pr-4">Status</th>
+              <th className="py-2 pr-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {methods.map((m) => (
+              <tr key={m.id} className="border-t border-gray-100 text-gray-900">
+                <td className="py-2 pr-4">{m.label}</td>
+                <td className="py-2 pr-4">{m.enabled ? "Enabled" : "Disabled"}</td>
+                <td className="py-2 pr-4">
+                  <ActionForm action="" fields={{ id: m.id }} actionUrl="/api/admin/payment-methods">
+                    {m.enabled ? "Disable" : "Enable"}
+                  </ActionForm>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

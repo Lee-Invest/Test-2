@@ -6,6 +6,7 @@ import { stripe, isStripeConfigured } from "@/lib/stripe";
 import { checkoutSchema } from "@/lib/validation";
 import { applyCoupon } from "@/lib/risk-engine";
 import { rateLimit } from "@/lib/rate-limit";
+import { getMultiAccountDiscountPct } from "@/lib/multi-account-discount";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +35,11 @@ export async function POST(req: NextRequest) {
     const form = await req.formData();
     body = {
       templateId: form.get("templateId") || undefined,
+      programId: form.get("programId") || undefined,
       couponCode: form.get("couponCode") || undefined,
       platformId: form.get("platformId") || undefined,
       addonIds: form.getAll("addonIds").length > 0 ? form.getAll("addonIds") : undefined,
+      paymentMethod: form.get("paymentMethod") || undefined,
       agreedToRules: form.get("agreedToRules") === "on",
     };
   } else {
@@ -56,7 +59,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { templateId, couponCode, platformId, addonIds } = parsed.data;
+  const { templateId, programId, couponCode, platformId, addonIds, paymentMethod } = parsed.data;
   const agreedAt = new Date();
 
   function fail(status: number, message: string) {
@@ -72,6 +75,21 @@ export async function POST(req: NextRequest) {
   const template = await prisma.challengeTemplate.findUnique({ where: { id: templateId } });
   if (!template || !template.active) {
     return fail(404, "Challenge template not found.");
+  }
+
+  let program = null;
+  if (programId) {
+    program = await prisma.challengeProgram.findUnique({ where: { id: programId } });
+    if (!program || !program.active) {
+      return fail(404, "Selected program not found.");
+    }
+  }
+
+  if (paymentMethod) {
+    const method = await prisma.paymentMethod.findUnique({ where: { key: paymentMethod } });
+    if (!method || !method.enabled) {
+      return fail(400, "Selected payment method isn't available.");
+    }
   }
 
   // Platform is optional, but if one was picked, the (template, platform)
@@ -133,16 +151,28 @@ export async function POST(req: NextRequest) {
       : null
   );
 
+  // "Add another account" discount: automatic, based on how many paid
+  // orders this trader already has — never combined with a manual coupon.
+  let discountCents = priceCalc.discountCents;
+  if (!priceCalc.couponValid) {
+    const multiDiscount = await getMultiAccountDiscountPct(session.user.id);
+    if (multiDiscount) {
+      discountCents = Math.round((template.priceCents * multiDiscount.pct) / 100);
+    }
+  }
+
   const order = await prisma.order.create({
     data: {
       userId: session.user.id,
       templateId: template.id,
+      programId: program?.id,
       couponId: priceCalc.couponValid ? coupon?.id : undefined,
       platformId: platformId ?? undefined,
+      paymentMethod: paymentMethod ?? undefined,
       subtotalCents: priceCalc.subtotalCents,
-      discountCents: priceCalc.discountCents,
+      discountCents,
       platformFeeCents,
-      totalCents: priceCalc.totalCents + platformFeeCents + addonTotalCents,
+      totalCents: priceCalc.subtotalCents - discountCents + platformFeeCents + addonTotalCents,
       status: "PENDING",
       agreedToRulesAt: agreedAt,
       addons: {
