@@ -35,14 +35,9 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
           }`}
         />
         {/* Bottom fade — layered so the photo dissolves gradually into the
-            page background instead of ending on a visible edge. Right photo
-            is left fully transparent at the bottom with no fade. */}
-        {!isRight && (
-          <>
-            <div className="absolute inset-x-0 bottom-0 h-10 backdrop-blur-sm" />
-            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent via-[var(--background)]/40 to-[var(--background)]/80 backdrop-blur-sm" />
-          </>
-        )}
+            page background instead of ending on a visible edge. */}
+        <div className="absolute inset-x-0 bottom-0 h-10 backdrop-blur-sm" />
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent via-[var(--background)]/40 to-[var(--background)]/80 backdrop-blur-sm" />
       </div>
 
       <div
@@ -50,7 +45,7 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
         className={`pointer-events-none absolute top-6 z-30 hidden max-w-[15rem] text-sm font-semibold italic leading-snug tracking-wide lg:block ${
           isRight ? "right-6" : "left-6"
         }`}
-        style={{ color: "#b48c46", textShadow: "0 1px 3px rgba(255,255,255,0.6)" }}
+        style={{ color: "#ffffff", textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}
       >
         {label}
       </div>
