@@ -19,15 +19,12 @@ const protectedMiddleware = withAuth(
   }
 );
 
-// The /login page renders a plain <form> that posts straight to NextAuth's
-// /api/auth/callback/credentials endpoint, which requires a CSRF token that
-// matches a paired cookie NextAuth sets. A Server Component can only READ
-// cookies, not set them, so fetching /api/auth/csrf from inside the page
-// itself would get back a token whose matching Set-Cookie never reaches the
-// browser — every login would then fail CSRF validation silently. Doing
-// that fetch here in middleware instead lets us forward the Set-Cookie onto
-// the real outgoing response, and hand the plain token down to the page via
-// a request header.
+// Every page renders <Nav>, which (once signed in) shows a "Sign out" form
+// posting straight to NextAuth's /api/auth/callback/signout — same reasoning
+// as the /login form: that endpoint requires a CSRF token paired with a
+// cookie, and a Server Component can only READ cookies, never set them. So
+// this fetch (and forwarding its Set-Cookie) has to happen here in
+// middleware, for every route, not just /login.
 async function attachCsrfToken(req: NextRequest) {
   const csrfRes = await fetch(new URL("/api/auth/csrf", req.nextUrl.origin), {
     headers: { cookie: req.headers.get("cookie") ?? "" },
@@ -45,13 +42,21 @@ async function attachCsrfToken(req: NextRequest) {
   return res;
 }
 
-export default function middleware(req: NextRequest) {
-  if (req.nextUrl.pathname === "/login") {
-    return attachCsrfToken(req);
+export default async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
+    const authResult = (await (protectedMiddleware as unknown as (req: NextRequest) => Promise<NextResponse>)(
+      req
+    )) as NextResponse;
+    // A redirect (not authorized, or wrong role) short-circuits — no need
+    // to also attach a CSRF token to a response the browser won't render.
+    if (authResult.status >= 300 && authResult.status < 400) return authResult;
   }
-  return (protectedMiddleware as unknown as (req: NextRequest) => unknown)(req);
+
+  return attachCsrfToken(req);
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*", "/login"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
