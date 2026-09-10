@@ -6,7 +6,9 @@
 // reaching the bottom.
 export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
   const isRight = side === "right";
-  const label = isRight ? "With Finance Trust" : "With Nature Trust";
+  const label = isRight
+    ? "Think Big — with the trust of ApexFund Headquarters Finance"
+    : "Think High — with the trust of ApexFund Nature Trust";
   return (
     <>
       <div
@@ -32,15 +34,19 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
               : "right-0 bg-gradient-to-r from-transparent to-[var(--background)]"
           }`}
         />
-        <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-b from-transparent via-[var(--background)]/60 to-[var(--background)] backdrop-blur-md" />
+        {/* Bottom fade — layered so the photo dissolves gradually into the
+            page background instead of ending on a visible edge. */}
+        <div className="absolute inset-x-0 bottom-0 h-24 backdrop-blur-sm" />
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent via-[var(--background)]/50 to-[var(--background)]/85 backdrop-blur-md" />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-[var(--background)]" />
       </div>
 
       <div
         aria-hidden
-        className={`pointer-events-none absolute top-6 z-30 hidden text-base font-semibold italic tracking-wide lg:block ${
-          isRight ? "right-8" : "left-8"
+        className={`pointer-events-none absolute top-6 z-30 hidden max-w-[15rem] rounded-lg px-3 py-2 text-sm font-semibold italic leading-snug tracking-wide text-white shadow-lg lg:block ${
+          isRight ? "right-6" : "left-6"
         }`}
-        style={{ color: "rgba(51, 65, 85, 0.98)", textShadow: "0 1px 3px rgba(255,255,255,0.9), 0 0 10px rgba(255,255,255,0.6)" }}
+        style={{ backgroundColor: "rgba(30, 41, 59, 0.65)", backdropFilter: "blur(6px)" }}
       >
         {label}
       </div>

@@ -66,7 +66,7 @@ export default function Home() {
           </div>
         </section>
 
-        <div className="relative z-10 border-y border-white/40 bg-white/25 py-4 backdrop-blur-2xl">
+        <div className="relative z-30 border-y border-white/40 bg-white/25 py-4 backdrop-blur-2xl">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 text-center text-xs font-semibold uppercase tracking-widest text-gray-700 sm:px-6">
             <span>Two-Phase Evaluation</span>
             <span className="hidden text-gray-300 sm:inline">•</span>
