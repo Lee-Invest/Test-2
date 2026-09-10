@@ -24,7 +24,6 @@ export default function Home() {
       <Nav />
       <main className="relative">
         <TreeAccent />
-        <div className="lg:pl-72 xl:pl-[22rem]">
         <section className="mx-auto max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pb-28 sm:pt-12">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-widest text-[var(--brand-accent)]">
@@ -108,7 +107,6 @@ export default function Home() {
             </Link>
           </div>
         </section>
-        </div>
       </main>
       <Footer />
     </>
