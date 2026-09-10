@@ -25,7 +25,15 @@ export default function Home() {
       <main className="relative">
         <TreeAccent side="left" />
         <TreeAccent side="right" />
-        <section className="relative z-10 border-b border-white/40 bg-white/35 pb-20 pt-8 backdrop-blur-2xl sm:pb-28 sm:pt-12">
+
+        <div
+          className="pointer-events-none absolute left-6 top-4 z-20 text-xs font-semibold uppercase tracking-[0.2em] sm:left-10"
+          style={{ color: "rgba(197, 160, 89, 0.95)", textShadow: "0 1px 8px rgba(0,0,0,0.35)" }}
+        >
+          Built by traders, made for traders
+        </div>
+
+        <section className="relative z-10 bg-white/35 pb-20 pt-8 backdrop-blur-2xl sm:pb-28 sm:pt-12">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="max-w-2xl">
               <p className="text-sm font-semibold uppercase tracking-widest text-[var(--brand-accent)]">
@@ -64,6 +72,18 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <div className="relative z-10 border-y border-white/40 bg-white/25 py-4 backdrop-blur-2xl">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 text-center text-xs font-semibold uppercase tracking-widest text-gray-700 sm:px-6">
+            <span>Two-Phase Evaluation</span>
+            <span className="hidden text-gray-300 sm:inline">•</span>
+            <span>Server-Verified Risk Engine</span>
+            <span className="hidden text-gray-300 sm:inline">•</span>
+            <span>Transparent Pricing</span>
+            <span className="hidden text-gray-300 sm:inline">•</span>
+            <span>Up to 80% Profit Split</span>
+          </div>
+        </div>
 
         <section className="py-16">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">

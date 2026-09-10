@@ -6,7 +6,7 @@ import { branding } from "@/lib/branding";
 import { SkylineAccent } from "@/components/skyline-accent";
 
 const links = [
-  { href: "/pricing", label: "Challenges" },
+  { href: "/pricing", label: "Buy Challenge" },
   { href: "/how-it-works", label: "How It Works" },
   { href: "/faq", label: "FAQ" },
   { href: "/rules", label: "Trading Rules" },

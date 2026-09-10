@@ -1,43 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { formatCents } from "@/lib/utils";
+import { STATIC_TEMPLATES } from "@/lib/static-templates";
 
-interface Template {
-  id: string;
-  name: string;
-  accountSize: number;
-  priceCents: number;
-  phase1ProfitTargetPct: string;
-  phase2ProfitTargetPct: string;
-  maxDailyLossPct: string;
-  maxOverallLossPct: string;
-  phase1MinTradingDays: number;
-  phase2MinTradingDays: number;
-  profitSplitTraderPct: string;
-}
-
-export default function PricingPage() {
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+export default function BuyChallengePage() {
+  const templates = STATIC_TEMPLATES;
+  const [selectedId, setSelectedId] = useState<string | null>(
+    templates[Math.floor(templates.length / 2)]?.id ?? null
+  );
   const [couponCode, setCouponCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const { data: session } = useSession();
   const router = useRouter();
-
-  useEffect(() => {
-    fetch("/api/templates")
-      .then((r) => r.json())
-      .then((data) => {
-        setTemplates(data.templates ?? []);
-        if (data.templates?.length) setSelectedId(data.templates[Math.floor(data.templates.length / 2)].id);
-      });
-  }, []);
 
   const selected = templates.find((t) => t.id === selectedId);
 
@@ -72,10 +52,11 @@ export default function PricingPage() {
     <>
       <Nav />
       <main className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <h1 className="text-3xl font-bold text-gray-900">Choose your challenge</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Buy Challenge</h1>
         <p className="mt-2 max-w-2xl text-gray-600">
           All account sizes share the same rule structure across two evaluation phases before funding. Pick a size
-          to see live pricing and rules pulled directly from our configuration.
+          to see the rules, then complete payment to activate your account — every price and rule shown here is
+          re-verified server-side at checkout.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
@@ -124,7 +105,7 @@ export default function PricingPage() {
                 disabled={loading}
                 className="mt-6 w-full rounded-md bg-[var(--brand-primary)] px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
               >
-                {loading ? "Starting checkout…" : "Start Challenge"}
+                {loading ? "Starting checkout…" : "Buy Challenge"}
               </button>
               {message && <p className="mt-3 text-xs text-gray-600">{message}</p>}
             </div>
