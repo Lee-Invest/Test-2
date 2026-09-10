@@ -1,25 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Check, Monitor, Smartphone, Globe } from "lucide-react";
 import { formatCents } from "@/lib/utils";
-
-interface Platform {
-  id: string;
-  name: string;
-  slug: string;
-  tagline: string;
-  features: string[];
-  badges: string[];
-}
-
-interface Availability {
-  templateId: string;
-  platformId: string;
-  allowed: boolean;
-  feeCents: number;
-  unavailableReason: string | null;
-}
+import { STATIC_PLATFORMS, STATIC_PLATFORM_AVAILABILITY } from "@/lib/static-platforms";
 
 const BADGE_ICON: Record<string, React.ElementType> = {
   WEB: Globe,
@@ -35,49 +18,12 @@ export function PlatformSelector({
   selectedId: string | null;
   onSelect: (platformId: string | null, feeCents: number) => void;
 }) {
-  const [platforms, setPlatforms] = useState<Platform[] | null>(null);
-  const [availability, setAvailability] = useState<Availability[]>([]);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/platforms")
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => {
-        if (cancelled) return;
-        setPlatforms(data.platforms ?? []);
-        setAvailability(data.availability ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (error) {
-    return (
-      <p className="text-sm text-gray-500">
-        Couldn&rsquo;t load trading platforms right now — you can still pick one at checkout.
-      </p>
-    );
-  }
-
-  if (!platforms) {
-    return (
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-32 animate-pulse rounded-2xl bg-gray-100" />
-        ))}
-      </div>
-    );
-  }
-
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {platforms.map((platform) => {
-        const avail = availability.find((a) => a.templateId === templateId && a.platformId === platform.id);
+      {STATIC_PLATFORMS.map((platform) => {
+        const avail = STATIC_PLATFORM_AVAILABILITY.find(
+          (a) => a.templateId === templateId && a.platformId === platform.id
+        );
         const allowed = avail?.allowed ?? true;
         const feeCents = avail?.feeCents ?? 0;
         const selected = selectedId === platform.id;
