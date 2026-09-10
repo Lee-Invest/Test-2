@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { branding } from "@/lib/branding";
-import { SkylineAccent } from "@/components/skyline-accent";
 
 const links = [
   { href: "/pricing", label: "Buy Challenge" },
@@ -17,21 +16,17 @@ export function Nav() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 overflow-hidden border-b border-white/50 bg-gradient-to-r from-slate-300/40 via-white/50 to-slate-300/40 shadow-[0_8px_32px_rgba(31,38,135,0.12)] backdrop-blur-2xl">
-        <SkylineAccent />
-        <SkylineAccent flip />
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-white/50 bg-gradient-to-r from-slate-300/40 via-white/50 to-slate-300/40 shadow-[0_8px_32px_rgba(31,38,135,0.12)] backdrop-blur-2xl">
+        <span
+          className="pointer-events-none absolute left-2 top-1/2 hidden -translate-y-1/2 text-[9px] font-semibold uppercase leading-none tracking-[0.15em] sm:inline"
+          style={{ color: "rgba(180, 140, 70, 0.95)" }}
+        >
+          Built by traders, made for traders
+        </span>
         <nav className="relative mx-auto flex max-w-6xl items-center justify-between px-8 py-3 sm:px-12">
-          <div className="flex flex-col items-start">
-            <span
-              className="hidden text-[9px] font-semibold uppercase leading-none tracking-[0.15em] sm:inline"
-              style={{ color: "rgba(180, 140, 70, 0.95)" }}
-            >
-              Built by traders, made for traders
-            </span>
-            <Link href="/" className="text-lg font-bold tracking-tight text-gray-900">
-              {branding.name}
-            </Link>
-          </div>
+          <Link href="/" className="text-lg font-bold tracking-tight text-gray-900">
+            {branding.name}
+          </Link>
           <div className="hidden gap-6 md:flex">
             {links.map((l) => (
               <Link key={l.href} href={l.href} className="text-sm text-gray-700 hover:text-gray-900">

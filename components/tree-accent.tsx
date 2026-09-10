@@ -13,7 +13,7 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
       <div
         aria-hidden
         className={`pointer-events-none absolute hidden overflow-hidden lg:block ${
-          isRight ? "right-0 top-0 h-[900px] w-[26rem] xl:w-[34rem]" : "left-0 inset-y-0 w-80 xl:w-[30rem]"
+          isRight ? "right-0 top-0 z-20 h-[900px] w-[26rem] xl:w-[34rem]" : "left-0 inset-y-0 w-80 xl:w-[30rem]"
         }`}
         style={{
           WebkitMaskImage: `linear-gradient(to ${isRight ? "left" : "right"}, black 85%, transparent 100%)`,
@@ -26,7 +26,7 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
           alt=""
           className="h-full w-full object-cover object-top"
         />
-        <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />
+        {!isRight && <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />}
         <div
           className={`absolute inset-y-0 w-24 backdrop-blur-md ${
             isRight
@@ -34,7 +34,9 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
               : "right-0 bg-gradient-to-r from-transparent to-[var(--background)]"
           }`}
         />
-        <div className="absolute inset-x-0 top-0 h-52 bg-gradient-to-b from-[var(--background)] via-[var(--background)]/40 to-transparent" />
+        {!isRight && (
+          <div className="absolute inset-x-0 top-0 h-52 bg-gradient-to-b from-[var(--background)] via-[var(--background)]/40 to-transparent" />
+        )}
         <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-b from-transparent via-[var(--background)]/60 to-[var(--background)] backdrop-blur-md" />
       </div>
 
