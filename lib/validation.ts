@@ -18,6 +18,9 @@ export const resetPasswordSchema = z.object({
 export const checkoutSchema = z.object({
   templateId: z.string().min(1),
   couponCode: z.string().optional(),
+  agreedToRules: z.literal(true, {
+    message: "You must agree to the Funded Trader Agreement and Trading Rules to continue.",
+  }),
 });
 
 export const templateUpsertSchema = z.object({

@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { templateId, couponCode } = parsed.data;
+  const agreedAt = new Date();
 
   const template = await prisma.challengeTemplate.findUnique({ where: { id: templateId } });
   if (!template || !template.active) {
@@ -64,6 +65,7 @@ export async function POST(req: NextRequest) {
       discountCents: priceCalc.discountCents,
       totalCents: priceCalc.totalCents,
       status: "PENDING",
+      agreedToRulesAt: agreedAt,
     },
   });
 

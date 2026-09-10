@@ -1,45 +1,15 @@
-"use client";
-
-import { useState } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Target, TrendingDown, ShieldAlert, CalendarDays, Infinity as InfinityIcon, Percent } from "lucide-react";
 import { formatCents } from "@/lib/utils";
 import { STATIC_TEMPLATES, type StaticTemplate as Template } from "@/lib/static-templates";
 
+// Purely a display grid — every "Start Now" click hands off to the Buy
+// Challenge page (/pricing), which owns the one real checkout flow
+// (account-size selection, coupon, contract acceptance, and the actual
+// /api/checkout call). Keeping checkout logic in a single place avoids two
+// copies of the same fetch/error-handling code drifting apart.
 export function ChallengeCards() {
   const templates = STATIC_TEMPLATES;
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const { data: session } = useSession();
-  const router = useRouter();
-
-  async function startChallenge(templateId: string) {
-    if (!session) {
-      router.push("/login?next=/pricing");
-      return;
-    }
-    setLoadingId(templateId);
-    setError(null);
-    try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId }),
-      });
-      const data = await res.json().catch(() => null);
-      if (data?.url) {
-        window.location.href = data.url;
-        return;
-      }
-      setError(typeof data?.error === "string" ? data.error : "Something went wrong. Please try again.");
-    } catch {
-      setError("Could not reach the server. Please check your connection and try again.");
-    } finally {
-      setLoadingId(null);
-    }
-  }
-
   const popularIdx = templates.findIndex((t) => t.accountSize === 100_000);
 
   const rows: { icon: React.ElementType; label: string; render: (t: Template) => React.ReactNode }[] = [
@@ -81,11 +51,7 @@ export function ChallengeCards() {
   ];
 
   return (
-    <div>
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-      )}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
       {templates.map((t, i) => {
         const estCents = Math.round(
           t.accountSize * 100 * (Number(t.phase1ProfitTargetPct) / 100) * (Number(t.profitSplitTraderPct) / 100)
@@ -113,14 +79,13 @@ export function ChallengeCards() {
               <div className="text-xs text-gray-500">One-Time Evaluation Fee</div>
             </div>
 
-            <button
-              onClick={() => startChallenge(t.id)}
-              disabled={loadingId === t.id}
+            <Link
+              href={`/pricing?template=${t.id}`}
               style={{ backgroundColor: "#1d3557" }}
-              className="mt-4 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/20 backdrop-blur-xl hover:opacity-90 disabled:opacity-50"
+              className="mt-4 block rounded-xl px-4 py-2.5 text-center text-sm font-semibold text-white shadow-lg shadow-black/20 backdrop-blur-xl hover:opacity-90"
             >
-              {loadingId === t.id ? "Starting…" : "Start Now"}
-            </button>
+              Start Now
+            </Link>
 
             <div className="mt-3 text-center text-xs text-gray-500">
               Estimated First Payout{" "}
@@ -141,7 +106,6 @@ export function ChallengeCards() {
           </div>
         );
       })}
-      </div>
     </div>
   );
 }
