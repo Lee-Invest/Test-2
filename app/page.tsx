@@ -23,7 +23,8 @@ export default function Home() {
     <>
       <Nav />
       <main className="relative">
-        <TreeAccent />
+        <TreeAccent side="left" />
+        <TreeAccent side="right" />
         <section className="mx-auto max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pb-28 sm:pt-12">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-widest text-[var(--brand-accent)]">
