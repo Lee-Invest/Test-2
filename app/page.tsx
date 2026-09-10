@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { branding } from "@/lib/branding";
+import { ChallengeCards } from "@/components/challenge-cards";
 
 const steps = [
   { title: "Pick a challenge", body: "Choose an account size from $10K to $200K and pay a one-time evaluation fee." },
@@ -56,6 +57,18 @@ export default function Home() {
                 <div className="text-sm text-gray-500">{s.label}</div>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="border-t border-gray-200 py-16">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <h2 className="text-center text-2xl font-bold text-gray-900">Choose your challenge</h2>
+            <p className="mx-auto mt-2 max-w-xl text-center text-gray-600">
+              Live pricing and rules pulled directly from our configuration — pick a size and start now.
+            </p>
+            <div className="mt-10">
+              <ChallengeCards />
+            </div>
           </div>
         </section>
 
