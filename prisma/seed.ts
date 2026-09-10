@@ -11,6 +11,51 @@ const TEMPLATE_DEFAULTS = [
   { accountSize: 200_000, priceCents: 102800 },
 ];
 
+const PLATFORM_DEFAULTS = [
+  {
+    slug: "mt4",
+    name: "MetaTrader 4",
+    tagline: "The original — simple, reliable, widely supported by third-party tools.",
+    features: ["Expert Advisors", "Custom Indicators", "Desktop + Mobile"],
+    badges: ["POPULAR"],
+    sortOrder: 1,
+  },
+  {
+    slug: "mt5",
+    name: "MetaTrader 5",
+    tagline: "Advanced charting and a broader instrument set, with full algo support.",
+    features: ["Advanced Charting", "Expert Advisors", "Desktop + Mobile + Web"],
+    badges: ["BEST FOR EAS"],
+    sortOrder: 2,
+  },
+  {
+    slug: "ctrader",
+    name: "cTrader",
+    tagline: "Depth-of-market execution and a clean, modern interface.",
+    features: ["Level II Pricing", "cAlgo Automation", "Desktop + Mobile + Web"],
+    badges: ["WEB"],
+    sortOrder: 3,
+  },
+  {
+    slug: "match-trader",
+    name: "Match-Trader",
+    tagline: "Fully browser-based — nothing to install.",
+    features: ["No Download Required", "Social Trading Feed", "Mobile"],
+    badges: ["WEB", "MOBILE"],
+    sortOrder: 4,
+  },
+];
+
+// One deliberately-unavailable combination so the availability engine has a
+// real case to demonstrate, matching the platform-availability spec: not
+// every (account size, platform) pair has to be allowed.
+const PLATFORM_UNAVAILABLE: Record<number, string[]> = {
+  200_000: ["ctrader"],
+};
+const PLATFORM_FEES: Record<string, number> = {
+  ctrader: 2500,
+};
+
 async function main() {
   console.log("Seeding ApexFund database...");
 
@@ -43,6 +88,42 @@ async function main() {
     templates.push(template);
   }
   console.log(`Created/updated ${templates.length} challenge templates.`);
+
+  // ---------------------------------------------------------------------
+  // Trading platforms + per-account-size availability
+  // ---------------------------------------------------------------------
+  const platforms = [];
+  for (const p of PLATFORM_DEFAULTS) {
+    const platform = await prisma.tradingPlatform.upsert({
+      where: { slug: p.slug },
+      update: { name: p.name, tagline: p.tagline, features: p.features, badges: p.badges, sortOrder: p.sortOrder },
+      create: { ...p, active: true },
+    });
+    platforms.push(platform);
+  }
+
+  for (const template of templates) {
+    for (const platform of platforms) {
+      const unavailableSlugs = PLATFORM_UNAVAILABLE[template.accountSize] ?? [];
+      const allowed = !unavailableSlugs.includes(platform.slug);
+      await prisma.platformAvailability.upsert({
+        where: { templateId_platformId: { templateId: template.id, platformId: platform.id } },
+        update: {
+          allowed,
+          feeCents: PLATFORM_FEES[platform.slug] ?? 0,
+          unavailableReason: allowed ? null : "Not available for this account size.",
+        },
+        create: {
+          templateId: template.id,
+          platformId: platform.id,
+          allowed,
+          feeCents: PLATFORM_FEES[platform.slug] ?? 0,
+          unavailableReason: allowed ? null : "Not available for this account size.",
+        },
+      });
+    }
+  }
+  console.log(`Created/updated ${platforms.length} trading platforms and their availability.`);
 
   // ---------------------------------------------------------------------
   // Coupon

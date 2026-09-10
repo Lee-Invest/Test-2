@@ -22,6 +22,7 @@ export async function provisionOrder(orderId: string) {
       userId: order.userId,
       templateId: order.templateId,
       orderId: order.id,
+      platformId: order.platformId,
       startingBalanceCents,
       currentBalanceCents: startingBalanceCents,
       currentEquityCents: startingBalanceCents,

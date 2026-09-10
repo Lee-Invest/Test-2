@@ -7,6 +7,7 @@ import { Check, ShieldCheck, TrendingUp, Wallet } from "lucide-react";
 import { formatCents } from "@/lib/utils";
 import { STATIC_TEMPLATES, type StaticTemplate } from "@/lib/static-templates";
 import { RuleTooltip } from "@/components/rule-tooltip";
+import { PlatformSelector } from "@/components/platform-selector";
 
 const roadmap = [
   {
@@ -35,12 +36,21 @@ function floorAfter(accountSize: number, pct: string) {
   return formatCents(accountSize * 100 - Math.round(accountSize * 100 * (Number(pct) / 100)));
 }
 
+const included = [
+  "2 Evaluation Phases",
+  "Trading Dashboard",
+  "Server-Verified Risk Engine",
+  "100% Fee Refund on Funding",
+];
+
 export function BuyChallengeForm() {
   const templates = STATIC_TEMPLATES;
 
   const [selectedId, setSelectedId] = useState<string | null>(
     templates[Math.floor(templates.length / 2)]?.id ?? null
   );
+  const [platformId, setPlatformId] = useState<string | null>(null);
+  const [platformFeeCents, setPlatformFeeCents] = useState(0);
   const [couponCode, setCouponCode] = useState("");
   const agreeRef = useRef<HTMLInputElement>(null);
   const [showAgreeHint, setShowAgreeHint] = useState(false);
@@ -64,7 +74,16 @@ export function BuyChallengeForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Switching account size can change (or remove) platform availability/fee
+  // for the platform that was picked, so re-picking is required rather than
+  // silently carrying over a now-invalid selection.
+  useEffect(() => {
+    setPlatformId(null);
+    setPlatformFeeCents(0);
+  }, [selectedId]);
+
   const selected = templates.find((t) => t.id === selectedId);
+  const totalCents = (selected?.priceCents ?? 0) + platformFeeCents;
 
   async function startCheckout() {
     if (!selected) return;
@@ -93,6 +112,7 @@ export function BuyChallengeForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           templateId: selected.id,
+          platformId: platformId ?? undefined,
           couponCode: couponCode || undefined,
           agreedToRules: true,
         }),
@@ -121,10 +141,10 @@ export function BuyChallengeForm() {
     <>
       <div className="max-w-2xl">
         <p className="text-sm font-semibold uppercase tracking-widest text-[var(--brand-accent)]">Get Funded</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Buy a Challenge</h1>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Build Your Challenge</h1>
         <p className="mt-3 text-gray-600">
-          Pick a size, agree to the trading rules, then pay. Every price and rule is re-verified server-side at
-          checkout.
+          Choose your account size and trading platform, agree to the rules, then pay. Every price and rule is
+          re-verified server-side at checkout.
         </p>
       </div>
 
@@ -138,71 +158,123 @@ export function BuyChallengeForm() {
         <span>80% Profit Split</span>
       </div>
 
-      <div className="mt-8 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {templates.map((t) => (
-          <SizeCard key={t.id} template={t} selected={selectedId === t.id} onSelect={() => setSelectedId(t.id)} />
-        ))}
-      </div>
-
-      {selected && (
-        <div className="mt-10 grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <RuleCard label="Account Size" value={`$${selected.accountSize.toLocaleString()}`} />
-              <RuleCard label="Price" value={formatCents(selected.priceCents)} />
-              <RuleCard
-                label="Phase 1 Target"
-                value={`${selected.phase1ProfitTargetPct}%`}
-                explain={`Grow your account balance by ${selected.phase1ProfitTargetPct}% during Phase 1 to move on to Phase 2.`}
-              />
-              <RuleCard
-                label="Phase 2 Target"
-                value={`${selected.phase2ProfitTargetPct}%`}
-                explain={`Hit a second, smaller ${selected.phase2ProfitTargetPct}% target in Phase 2 to get funded.`}
-              />
-              <RuleCard
-                label="Max Daily Loss"
-                value={pctAmount(selected.accountSize, selected.maxDailyLossPct)}
-                explain={`Your equity can't drop more than ${selected.maxDailyLossPct}% below where it started that trading day, or the account fails.`}
-              />
-              <RuleCard
-                label="Max Total Loss"
-                value={pctAmount(selected.accountSize, selected.maxOverallLossPct)}
-                explain={`Your balance can never fall more than ${selected.maxOverallLossPct}% below the starting $${selected.accountSize.toLocaleString()} — it must always stay above ${floorAfter(selected.accountSize, selected.maxOverallLossPct)}.`}
-              />
-              <RuleCard
-                label="Min Trading Days"
-                value={`${selected.phase1MinTradingDays} / ${selected.phase2MinTradingDays}`}
-                explain={`You must place at least one trade on this many separate days in Phase 1 / Phase 2 respectively.`}
-              />
-              <RuleCard
-                label="Profit Split"
-                value={`${selected.profitSplitTraderPct}% to you`}
-                explain={`Once funded, you keep ${selected.profitSplitTraderPct}% of the profits you withdraw.`}
-              />
+      <div className="mt-10 grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          {/* Step 1 — Program (a single real program today; more can be
+              added by an admin without touching this UI, once a Program
+              model backs this section). */}
+          <StepHeader step={1} title="Choose your program" />
+          <div className="flex items-start gap-3 rounded-2xl border-2 border-[var(--brand-primary)] bg-[var(--brand-primary)]/10 p-4">
+            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white">
+              <Check size={12} />
             </div>
-
-            <div className="mt-8 rounded-2xl border border-white/40 bg-white/20 p-6 backdrop-blur-xl">
-              <h2 className="text-lg font-bold text-gray-900">What happens after you pass</h2>
-              <div className="mt-5 grid gap-5 sm:grid-cols-3">
-                {roadmap.map((step, i) => (
-                  <div key={step.title} className="flex flex-col gap-2">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
-                      <step.icon size={18} />
-                    </div>
-                    <div className="text-sm font-semibold text-gray-900">
-                      {i + 1}. {step.title}
-                    </div>
-                    <p className="text-xs text-gray-600">{step.body}</p>
-                  </div>
-                ))}
-              </div>
+            <div>
+              <div className="font-semibold text-gray-900">2-Step Evaluation</div>
+              <p className="mt-1 text-sm text-gray-600">
+                The classic path: hit a profit target in Phase 1, confirm it with a second, smaller target in Phase
+                2, then trade funded.
+              </p>
             </div>
           </div>
 
+          <StepHeader step={2} title="Choose your account size" className="mt-10" />
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {templates.map((t) => (
+              <SizeCard key={t.id} template={t} selected={selectedId === t.id} onSelect={() => setSelectedId(t.id)} />
+            ))}
+          </div>
+
+          {selected && (
+            <>
+              <StepHeader step={3} title="Choose your trading platform" className="mt-10" />
+              <PlatformSelector
+                templateId={selected.id}
+                selectedId={platformId}
+                onSelect={(id, fee) => {
+                  setPlatformId(id);
+                  setPlatformFeeCents(id ? fee : 0);
+                }}
+              />
+              <p className="mt-2 text-xs text-gray-500">You can change your platform before your first trade.</p>
+
+              <StepHeader step={4} title="Your challenge rules" className="mt-10" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <RuleCard label="Account Size" value={`$${selected.accountSize.toLocaleString()}`} />
+                <RuleCard label="Price" value={formatCents(selected.priceCents)} />
+                <RuleCard
+                  label="Phase 1 Target"
+                  value={`${selected.phase1ProfitTargetPct}%`}
+                  explain={`Grow your account balance by ${selected.phase1ProfitTargetPct}% during Phase 1 to move on to Phase 2.`}
+                />
+                <RuleCard
+                  label="Phase 2 Target"
+                  value={`${selected.phase2ProfitTargetPct}%`}
+                  explain={`Hit a second, smaller ${selected.phase2ProfitTargetPct}% target in Phase 2 to get funded.`}
+                />
+                <RuleCard
+                  label="Max Daily Loss"
+                  value={pctAmount(selected.accountSize, selected.maxDailyLossPct)}
+                  explain={`Your equity can't drop more than ${selected.maxDailyLossPct}% below where it started that trading day, or the account fails.`}
+                />
+                <RuleCard
+                  label="Max Total Loss"
+                  value={pctAmount(selected.accountSize, selected.maxOverallLossPct)}
+                  explain={`Your balance can never fall more than ${selected.maxOverallLossPct}% below the starting $${selected.accountSize.toLocaleString()} — it must always stay above ${floorAfter(selected.accountSize, selected.maxOverallLossPct)}.`}
+                />
+                <RuleCard
+                  label="Min Trading Days"
+                  value={`${selected.phase1MinTradingDays} / ${selected.phase2MinTradingDays}`}
+                  explain="You must place at least one trade on this many separate days in Phase 1 / Phase 2 respectively."
+                />
+                <RuleCard
+                  label="Profit Split"
+                  value={`${selected.profitSplitTraderPct}% to you`}
+                  explain={`Starts at ${selected.profitSplitTraderPct}% once funded, and scales up to 95% each time you get paid.`}
+                />
+              </div>
+
+              <div className="mt-8 rounded-2xl border border-white/40 bg-white/20 p-6 backdrop-blur-xl">
+                <h2 className="text-lg font-bold text-gray-900">What happens after you pass</h2>
+                <div className="mt-5 grid gap-5 sm:grid-cols-3">
+                  {roadmap.map((step, i) => (
+                    <div key={step.title} className="flex flex-col gap-2">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
+                        <step.icon size={18} />
+                      </div>
+                      <div className="text-sm font-semibold text-gray-900">
+                        {i + 1}. {step.title}
+                      </div>
+                      <p className="text-xs text-gray-600">{step.body}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Sticky order summary */}
+        <div className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-2xl border border-white/40 bg-white/25 p-6 shadow-[0_8px_32px_rgba(31,38,135,0.08)] backdrop-blur-2xl">
-            <div className="text-sm text-gray-600">One-time evaluation fee</div>
-            <div className="mt-1 text-3xl font-bold text-gray-900">{formatCents(selected.priceCents)}</div>
+            <div className="text-lg font-bold text-gray-900">Your Challenge</div>
+
+            {selected ? (
+              <dl className="mt-4 space-y-2 text-sm">
+                <SummaryRow label="Account" value={`$${selected.accountSize.toLocaleString()}`} />
+                <SummaryRow label="Program" value="2-Step Evaluation" />
+                <SummaryRow label="Platform" value={platformId ? "Selected" : "Not chosen yet"} />
+                <div className="border-t border-gray-200 pt-2">
+                  <SummaryRow label="Subtotal" value={formatCents(selected.priceCents)} />
+                  {platformFeeCents > 0 && <SummaryRow label="Platform fee" value={`+${formatCents(platformFeeCents)}`} />}
+                </div>
+                <div className="flex items-center justify-between border-t border-gray-200 pt-2 text-base font-bold text-gray-900">
+                  <span>Total</span>
+                  <span>{formatCents(totalCents)}</span>
+                </div>
+              </dl>
+            ) : (
+              <p className="mt-4 text-sm text-gray-500">Pick an account size to see your order summary.</p>
+            )}
 
             <label className="mt-6 block text-xs text-gray-500">Coupon code (optional)</label>
             <input
@@ -211,6 +283,17 @@ export function BuyChallengeForm() {
               placeholder="e.g. WELCOME10"
               className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[var(--brand-primary)]"
             />
+            <p className="mt-1 text-[11px] text-gray-400">Discount is verified and applied server-side at checkout.</p>
+
+            <div className="mt-5 space-y-1.5">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">What&rsquo;s included</div>
+              {included.map((item) => (
+                <div key={item} className="flex items-center gap-2 text-xs text-gray-600">
+                  <Check size={12} className="text-[var(--brand-accent)]" />
+                  {item}
+                </div>
+              ))}
+            </div>
 
             <div className="mt-6 max-h-32 overflow-y-auto rounded-lg border border-gray-200 bg-white/70 p-3 text-xs text-gray-600">
               By purchasing, you agree to trade this account in good faith, respect the loss limits above, avoid
@@ -237,7 +320,7 @@ export function BuyChallengeForm() {
             <button
               type="button"
               onClick={startCheckout}
-              disabled={loading}
+              disabled={loading || !selected}
               style={{ backgroundColor: "#2563eb" }}
               className="mt-6 w-full rounded-md px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
@@ -251,8 +334,28 @@ export function BuyChallengeForm() {
             {message && <p className="mt-3 text-xs text-gray-600">{message}</p>}
           </div>
         </div>
-      )}
+      </div>
     </>
+  );
+}
+
+function StepHeader({ step, title, className = "" }: { step: number; title: string; className?: string }) {
+  return (
+    <div className={`mb-4 flex items-center gap-2 ${className}`}>
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-900 text-xs font-bold text-white">
+        {step}
+      </span>
+      <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <dt className="text-gray-500">{label}</dt>
+      <dd className="font-medium text-gray-900">{value}</dd>
+    </div>
   );
 }
 
@@ -297,4 +400,3 @@ function RuleCard({ label, value, explain }: { label: string; value: string; exp
     </div>
   );
 }
-

@@ -146,11 +146,51 @@ model ChallengeTemplate {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accounts Account[]
-  coupons  Coupon[]
-  orders   Order[]
+  accounts     Account[]
+  coupons      Coupon[]
+  orders       Order[]
+  availability PlatformAvailability[]
 
   @@index([accountSize])
+}
+
+// A trading platform a trader can run their account on (MT4, MT5, cTrader,
+// etc). Purely descriptive/display data — whether it's actually offered for
+// a given account size lives in PlatformAvailability, never hardcoded here
+// or in application code.
+model TradingPlatform {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  tagline   String
+  features  String[]
+  badges    String[]
+  accessUrl String? // e.g. a web-platform login link shown after purchase
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  availability PlatformAvailability[]
+  orders       Order[]
+  accounts     Account[]
+}
+
+// Server-side availability engine: whether a given (template, platform)
+// combination can be purchased, and any platform-specific fee. Application
+// code must always look this up rather than branching on account size or
+// platform name directly.
+model PlatformAvailability {
+  id                String            @id @default(cuid())
+  templateId        String
+  template          ChallengeTemplate @relation(fields: [templateId], references: [id])
+  platformId        String
+  platform          TradingPlatform   @relation(fields: [platformId], references: [id])
+  allowed           Boolean           @default(true)
+  feeCents          Int               @default(0)
+  unavailableReason String?
+
+  @@unique([templateId, platformId])
 }
 
 model Coupon {
@@ -179,11 +219,14 @@ model Order {
   template   ChallengeTemplate @relation(fields: [templateId], references: [id])
   couponId   String?
   coupon     Coupon?           @relation(fields: [couponId], references: [id])
+  platformId String?
+  platform   TradingPlatform?  @relation(fields: [platformId], references: [id])
 
-  subtotalCents Int
-  discountCents Int         @default(0)
-  totalCents    Int
-  status        OrderStatus @default(PENDING)
+  subtotalCents    Int
+  discountCents    Int         @default(0)
+  platformFeeCents Int         @default(0)
+  totalCents       Int
+  status           OrderStatus @default(PENDING)
 
   stripeSessionId       String? @unique
   stripePaymentIntentId String?
@@ -227,6 +270,8 @@ model Account {
   template   ChallengeTemplate @relation(fields: [templateId], references: [id])
   orderId    String?           @unique
   order      Order?            @relation(fields: [orderId], references: [id])
+  platformId String?
+  platform   TradingPlatform?  @relation(fields: [platformId], references: [id])
 
   startingBalanceCents Int
   currentBalanceCents  Int // realized balance (closed trades only)

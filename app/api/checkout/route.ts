@@ -26,12 +26,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { templateId, couponCode } = parsed.data;
+  const { templateId, couponCode, platformId } = parsed.data;
   const agreedAt = new Date();
 
   const template = await prisma.challengeTemplate.findUnique({ where: { id: templateId } });
   if (!template || !template.active) {
     return NextResponse.json({ error: "Challenge template not found." }, { status: 404 });
+  }
+
+  // Platform is optional, but if one was picked, the (template, platform)
+  // combination must actually be allowed by the availability engine — never
+  // trust the frontend's own idea of what's available.
+  let platformFeeCents = 0;
+  if (platformId) {
+    const platform = await prisma.tradingPlatform.findUnique({ where: { id: platformId } });
+    if (!platform || !platform.active) {
+      return NextResponse.json({ error: "Selected trading platform not found." }, { status: 404 });
+    }
+    const availability = await prisma.platformAvailability.findUnique({
+      where: { templateId_platformId: { templateId: template.id, platformId } },
+    });
+    if (availability && !availability.allowed) {
+      return NextResponse.json(
+        { error: availability.unavailableReason ?? "This platform isn't available for the selected account size." },
+        { status: 400 }
+      );
+    }
+    platformFeeCents = availability?.feeCents ?? 0;
   }
 
   let coupon = null;
@@ -61,9 +82,11 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       templateId: template.id,
       couponId: priceCalc.couponValid ? coupon?.id : undefined,
+      platformId: platformId ?? undefined,
       subtotalCents: priceCalc.subtotalCents,
       discountCents: priceCalc.discountCents,
-      totalCents: priceCalc.totalCents,
+      platformFeeCents,
+      totalCents: priceCalc.totalCents + platformFeeCents,
       status: "PENDING",
       agreedToRulesAt: agreedAt,
     },
@@ -94,7 +117,7 @@ export async function POST(req: NextRequest) {
           price_data: {
             currency: "usd",
             product_data: { name: `${template.name} — $${template.accountSize.toLocaleString()} Challenge` },
-            unit_amount: priceCalc.totalCents,
+            unit_amount: order.totalCents,
           },
           quantity: 1,
         },

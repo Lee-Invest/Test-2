@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Nav } from "@/components/nav";
 import { formatCents } from "@/lib/utils";
 
-type Tab = "analytics" | "templates" | "accounts" | "payouts";
+type Tab = "analytics" | "templates" | "platforms" | "accounts" | "payouts";
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("analytics");
@@ -15,7 +15,7 @@ export default function AdminPage() {
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <h1 className="text-3xl font-bold text-gray-900">Admin</h1>
         <div className="mt-6 flex gap-2 border-b border-gray-200">
-          {(["analytics", "templates", "accounts", "payouts"] as Tab[]).map((t) => (
+          {(["analytics", "templates", "platforms", "accounts", "payouts"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -31,6 +31,7 @@ export default function AdminPage() {
         <div className="mt-8">
           {tab === "analytics" && <Analytics />}
           {tab === "templates" && <Templates />}
+          {tab === "platforms" && <Platforms />}
           {tab === "accounts" && <Accounts />}
           {tab === "payouts" && <Payouts />}
         </div>
@@ -172,6 +173,98 @@ function Field({ label, value, onChange }: { label: string; value: string | numb
         onChange={(e) => onChange(e.target.value)}
         className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900"
       />
+    </div>
+  );
+}
+
+interface PlatformRow {
+  id: string;
+  name: string;
+  slug: string;
+  active: boolean;
+}
+
+interface TemplateRow {
+  id: string;
+  accountSize: number;
+}
+
+interface AvailabilityRow {
+  templateId: string;
+  platformId: string;
+  allowed: boolean;
+  feeCents: number;
+}
+
+function Platforms() {
+  const [platforms, setPlatforms] = useState<PlatformRow[]>([]);
+  const [templates, setTemplates] = useState<TemplateRow[]>([]);
+  const [availability, setAvailability] = useState<AvailabilityRow[]>([]);
+
+  function load() {
+    fetch("/api/admin/platforms")
+      .then((r) => r.json())
+      .then((d) => {
+        setPlatforms(d.platforms ?? []);
+        setTemplates(d.templates ?? []);
+        setAvailability(d.availability ?? []);
+      });
+  }
+  useEffect(load, []);
+
+  async function act(body: Record<string, unknown>) {
+    await fetch("/api/admin/platforms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    load();
+  }
+
+  return (
+    <div>
+      <p className="mb-4 text-sm text-gray-500">
+        Toggling availability here updates the same table the checkout page validates against — takes effect
+        immediately, no deploy needed.
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="text-gray-400">
+            <tr>
+              <th className="py-2 pr-4">Platform</th>
+              <th className="py-2 pr-4">Active</th>
+              {templates.map((t) => (
+                <th key={t.id} className="py-2 pr-4">
+                  ${t.accountSize.toLocaleString()}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {platforms.map((p) => (
+              <tr key={p.id} className="border-t border-gray-100 text-gray-900">
+                <td className="py-2 pr-4 font-medium">{p.name}</td>
+                <td className="py-2 pr-4">
+                  <ActionButton onClick={() => act({ action: "TOGGLE_ACTIVE", platformId: p.id })}>
+                    {p.active ? "Active" : "Inactive"}
+                  </ActionButton>
+                </td>
+                {templates.map((t) => {
+                  const avail = availability.find((a) => a.templateId === t.id && a.platformId === p.id);
+                  const allowed = avail?.allowed ?? true;
+                  return (
+                    <td key={t.id} className="py-2 pr-4">
+                      <ActionButton onClick={() => act({ action: "TOGGLE_AVAILABILITY", templateId: t.id, platformId: p.id })}>
+                        {allowed ? "Allowed" : "Blocked"}
+                      </ActionButton>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
