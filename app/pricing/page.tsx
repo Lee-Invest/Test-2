@@ -103,7 +103,8 @@ export default function BuyChallengePage() {
               <button
                 onClick={startCheckout}
                 disabled={loading}
-                className="mt-6 w-full rounded-md bg-[var(--brand-primary)] px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: "#1d3557" }}
+                className="mt-6 w-full rounded-md px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
               >
                 {loading ? "Starting checkout…" : "Buy Challenge"}
               </button>

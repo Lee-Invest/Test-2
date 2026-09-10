@@ -42,7 +42,8 @@ export default function Home() {
               <div className="mt-8 flex gap-4">
                 <Link
                   href="#choose-challenge"
-                  className="rounded-full border border-blue-400/50 bg-blue-500/30 px-6 py-3 text-sm font-semibold text-white shadow-[0_2px_10px_rgba(0,0,0,0.25)] backdrop-blur-xl hover:bg-blue-500/45"
+                  className="rounded-full border px-6 py-3 text-sm font-semibold text-white shadow-[0_2px_10px_rgba(0,0,0,0.25)] backdrop-blur-xl"
+                  style={{ backgroundColor: "rgba(29, 53, 87, 0.75)", borderColor: "rgba(29, 53, 87, 0.5)" }}
                 >
                   View Challenges
                 </Link>
