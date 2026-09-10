@@ -8,17 +8,11 @@ import { STATIC_TEMPLATES, type StaticTemplate as Template } from "@/lib/static-
 // (account-size selection, coupon, contract acceptance, and the actual
 // /api/checkout call). Keeping checkout logic in a single place avoids two
 // copies of the same fetch/error-handling code drifting apart.
-const SILVER = [192, 192, 197] as const;
-const GOLD = [180, 140, 70] as const;
-
-function borderColor(index: number, total: number) {
-  const t = total > 1 ? index / (total - 1) : 0;
-  const [r, g, b] = SILVER.map((c, i) => Math.round(c + (GOLD[i] - c) * t));
-  return `rgb(${r}, ${g}, ${b})`;
-}
+const GOLD = "#b48c46";
 
 export function ChallengeCards() {
   const templates = STATIC_TEMPLATES;
+  const uniqueSizes = [25_000, 50_000];
 
   const lossAmount = (t: Template, pct: string) => formatCents(Math.round(t.accountSize * 100 * (Number(pct) / 100)));
 
@@ -70,17 +64,27 @@ export function ChallengeCards() {
 
   return (
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
-      {templates.map((t, i) => {
+      {templates.map((t) => {
         const estCents = Math.round(
           t.accountSize * 100 * (Number(t.phase1ProfitTargetPct) / 100) * (Number(t.profitSplitTraderPct) / 100)
         );
-        const accent = borderColor(i, templates.length);
+        const isGold = t.accountSize === 200_000;
+        const isUnique = uniqueSizes.includes(t.accountSize);
         return (
           <div
             key={t.id}
-            className="relative flex flex-col rounded-2xl border-2 bg-white/15 p-5 pt-7 shadow-[0_8px_32px_rgba(31,38,135,0.1)] backdrop-blur-2xl transition hover:bg-white/30"
-            style={{ borderColor: accent }}
+            className="relative flex flex-col rounded-2xl border bg-white/15 p-5 pt-7 shadow-[0_8px_32px_rgba(31,38,135,0.1)] backdrop-blur-2xl transition hover:bg-white/30"
+            style={{ borderColor: isGold ? GOLD : "rgba(255,255,255,0.4)", borderWidth: isGold ? 2 : 1 }}
           >
+            {isUnique && (
+              <div
+                className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
+                style={{ backgroundColor: GOLD }}
+              >
+                Unique
+              </div>
+            )}
+
             <div className="text-center">
               <div className="text-xs uppercase tracking-wide text-gray-500">Account Size</div>
               <div className="text-xl font-bold text-gray-900">${t.accountSize.toLocaleString()}</div>
