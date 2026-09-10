@@ -229,6 +229,7 @@ function Accounts() {
                 <ActionButton onClick={() => act(a.id, "REACTIVATE")}>Reactivate</ActionButton>
                 <ActionButton onClick={() => act(a.id, "RESET")}>Reset</ActionButton>
                 <ActionButton onClick={() => act(a.id, "MARK_FUNDED")}>Mark Funded</ActionButton>
+                <ActionButton onClick={() => act(a.id, "MARK_REFUNDED")}>Mark Refunded</ActionButton>
                 <ActionButton onClick={() => act(a.id, "CLOSE")}>Close</ActionButton>
               </td>
             </tr>

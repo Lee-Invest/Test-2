@@ -190,6 +190,12 @@ model Order {
 
   agreedToRulesAt DateTime?
 
+  // Set once the account tied to this order first reaches the FUNDED phase
+  // (see lib/refund.ts) — the evaluation fee is refunded 100% at that point.
+  // refundedAt is set separately once an admin actually processes the payout.
+  refundEligibleAt DateTime?
+  refundedAt       DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

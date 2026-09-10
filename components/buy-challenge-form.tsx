@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Check, ShieldCheck, TrendingUp, Wallet } from "lucide-react";
 import { formatCents } from "@/lib/utils";
 import { STATIC_TEMPLATES, type StaticTemplate } from "@/lib/static-templates";
+import { RuleTooltip } from "@/components/rule-tooltip";
 
 const roadmap = [
   {
@@ -21,7 +22,7 @@ const roadmap = [
   {
     icon: Wallet,
     title: "Funded & Paid",
-    body: "Trade a funded account and request payouts once you're eligible — you keep your profit split of every withdrawal.",
+    body: "Trade a funded account and request payouts once you're eligible — you keep your profit split of every withdrawal. Your one-time evaluation fee is also refunded 100% the moment you get funded.",
   },
 ];
 
@@ -30,15 +31,15 @@ function pctAmount(accountSize: number, pct: string) {
   return `${pct}% (${formatCents(cents)})`;
 }
 
-function Form() {
+function floorAfter(accountSize: number, pct: string) {
+  return formatCents(accountSize * 100 - Math.round(accountSize * 100 * (Number(pct) / 100)));
+}
+
+export function BuyChallengeForm() {
   const templates = STATIC_TEMPLATES;
-  const searchParams = useSearchParams();
-  const preselected = searchParams.get("template");
 
   const [selectedId, setSelectedId] = useState<string | null>(
-    (preselected && templates.some((t) => t.id === preselected) ? preselected : null) ??
-      templates[Math.floor(templates.length / 2)]?.id ??
-      null
+    templates[Math.floor(templates.length / 2)]?.id ?? null
   );
   const [couponCode, setCouponCode] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -47,12 +48,20 @@ function Form() {
   const { data: session } = useSession();
   const router = useRouter();
 
+  // Read an optional ?template= param on mount (plain window.location, not
+  // useSearchParams) so this page never needs a Suspense boundary around
+  // that read — a useSearchParams()-in-Suspense page renders nothing from
+  // the server until client JS finishes hydrating, which turned this page
+  // blank if hydration was ever slow or failed. Reading the query string
+  // after mount instead means the page's real content is already in the
+  // server-rendered HTML.
   useEffect(() => {
+    const preselected = new URLSearchParams(window.location.search).get("template");
     if (preselected && templates.some((t) => t.id === preselected)) {
       setSelectedId(preselected);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preselected]);
+  }, []);
 
   const selected = templates.find((t) => t.id === selectedId);
 
@@ -116,7 +125,7 @@ function Form() {
         <span className="text-gray-300">•</span>
         <span>Transparent Pricing</span>
         <span className="text-gray-300">•</span>
-        <span>Up to 80% Profit Split</span>
+        <span>80% Profit Split</span>
       </div>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -131,12 +140,36 @@ function Form() {
             <div className="grid gap-4 sm:grid-cols-2">
               <RuleCard label="Account Size" value={`$${selected.accountSize.toLocaleString()}`} />
               <RuleCard label="Price" value={formatCents(selected.priceCents)} />
-              <RuleCard label="Phase 1 Target" value={`${selected.phase1ProfitTargetPct}%`} />
-              <RuleCard label="Phase 2 Target" value={`${selected.phase2ProfitTargetPct}%`} />
-              <RuleCard label="Max Daily Loss" value={pctAmount(selected.accountSize, selected.maxDailyLossPct)} />
-              <RuleCard label="Max Total Loss" value={pctAmount(selected.accountSize, selected.maxOverallLossPct)} />
-              <RuleCard label="Min Trading Days" value={`${selected.phase1MinTradingDays} / ${selected.phase2MinTradingDays}`} />
-              <RuleCard label="Profit Split" value={`${selected.profitSplitTraderPct}% to you`} />
+              <RuleCard
+                label="Phase 1 Target"
+                value={`${selected.phase1ProfitTargetPct}%`}
+                explain={`Grow your account balance by ${selected.phase1ProfitTargetPct}% during Phase 1 to move on to Phase 2.`}
+              />
+              <RuleCard
+                label="Phase 2 Target"
+                value={`${selected.phase2ProfitTargetPct}%`}
+                explain={`Hit a second, smaller ${selected.phase2ProfitTargetPct}% target in Phase 2 to get funded.`}
+              />
+              <RuleCard
+                label="Max Daily Loss"
+                value={pctAmount(selected.accountSize, selected.maxDailyLossPct)}
+                explain={`Your equity can't drop more than ${selected.maxDailyLossPct}% below where it started that trading day, or the account fails.`}
+              />
+              <RuleCard
+                label="Max Total Loss"
+                value={pctAmount(selected.accountSize, selected.maxOverallLossPct)}
+                explain={`Your balance can never fall more than ${selected.maxOverallLossPct}% below the starting $${selected.accountSize.toLocaleString()} — it must always stay above ${floorAfter(selected.accountSize, selected.maxOverallLossPct)}.`}
+              />
+              <RuleCard
+                label="Min Trading Days"
+                value={`${selected.phase1MinTradingDays} / ${selected.phase2MinTradingDays}`}
+                explain={`You must place at least one trade on this many separate days in Phase 1 / Phase 2 respectively.`}
+              />
+              <RuleCard
+                label="Profit Split"
+                value={`${selected.profitSplitTraderPct}% to you`}
+                explain={`Once funded, you keep ${selected.profitSplitTraderPct}% of the profits you withdraw.`}
+              />
             </div>
 
             <div className="mt-8 rounded-2xl border border-white/40 bg-white/20 p-6 backdrop-blur-xl">
@@ -236,29 +269,14 @@ function SizeCard({
   );
 }
 
-function RuleCard({ label, value }: { label: string; value: string }) {
+function RuleCard({ label, value, explain }: { label: string; value: string; explain?: string }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <div className="text-xs uppercase tracking-wide text-gray-400">{label}</div>
+      <div className="text-xs uppercase tracking-wide text-gray-400">
+        {explain ? <RuleTooltip text={explain}>{label}</RuleTooltip> : label}
+      </div>
       <div className="mt-1 text-lg font-semibold text-gray-900">{value}</div>
     </div>
   );
 }
 
-function FormFallback() {
-  return (
-    <div className="animate-pulse">
-      <div className="h-4 w-32 rounded bg-gray-200" />
-      <div className="mt-3 h-9 w-80 rounded bg-gray-200" />
-      <div className="mt-4 h-16 w-full max-w-2xl rounded bg-gray-200" />
-    </div>
-  );
-}
-
-export function BuyChallengeForm() {
-  return (
-    <Suspense fallback={<FormFallback />}>
-      <Form />
-    </Suspense>
-  );
-}

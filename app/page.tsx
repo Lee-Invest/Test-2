@@ -8,13 +8,16 @@ import { TreeAccent } from "@/components/tree-accent";
 const steps = [
   { title: "Pick a challenge", body: "Choose an account size from $10K to $200K and pay a one-time evaluation fee." },
   { title: "Pass two phases", body: "Hit the profit target in Phase 1 and Phase 2 while respecting the drawdown rules." },
-  { title: "Get funded", body: "Trade a funded account and keep up to 80% of the profits you generate." },
+  {
+    title: "Get funded",
+    body: "Trade a funded account, keep 80% of the profits you generate, and get your evaluation fee refunded 100%.",
+  },
 ];
 
 const stats = [
   { label: "Account sizes", value: "$10K – $200K" },
-  { label: "Profit split", value: "Up to 80%" },
-  { label: "Evaluation phases", value: "2" },
+  { label: "Profit split", value: "80%" },
+  { label: "Fee refund on funding", value: "100%" },
   { label: "Payout cadence", value: "On request" },
 ];
 

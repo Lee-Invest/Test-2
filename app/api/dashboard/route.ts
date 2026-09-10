@@ -30,6 +30,7 @@ export async function GET() {
       template: true,
       phases: { orderBy: { createdAt: "desc" } },
       trades: { orderBy: { openedAt: "desc" } },
+      order: { select: { totalCents: true, refundEligibleAt: true, refundedAt: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -95,6 +96,13 @@ export async function GET() {
       isFailed,
       breachEvent: isFailed
         ? latestRiskEvents.find((e) => e.accountId === account.id) ?? null
+        : null,
+      refund: account.order
+        ? {
+            eligible: Boolean(account.order.refundEligibleAt),
+            refunded: Boolean(account.order.refundedAt),
+            amountCents: account.order.totalCents,
+          }
         : null,
     };
   });

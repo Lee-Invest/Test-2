@@ -67,8 +67,11 @@ export function Nav() {
               <>
                 <Link
                   href="/login"
-                  style={{ backgroundColor: "#c0c0c5" }}
-                  className="rounded-full px-3 py-1.5 text-sm font-medium text-gray-900 shadow-md shadow-black/10 hover:opacity-90"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(226,229,233,0.9), rgba(180,184,190,0.7) 50%, rgba(226,229,233,0.9))",
+                    border: "1px solid rgba(255,255,255,0.6)",
+                  }}
+                  className="rounded-full px-3 py-1.5 text-sm font-medium text-gray-900 shadow-md shadow-black/10 backdrop-blur-xl hover:opacity-90"
                 >
                   Log in
                 </Link>
@@ -137,8 +140,11 @@ export function Nav() {
                     <Link
                       href="/login"
                       onClick={() => setMenuOpen(false)}
-                      style={{ backgroundColor: "#c0c0c5" }}
-                      className="rounded-full px-3 py-2 text-center text-sm font-medium text-gray-900 shadow-md shadow-black/10 hover:opacity-90"
+                      style={{
+                        background: "linear-gradient(135deg, rgba(226,229,233,0.9), rgba(180,184,190,0.7) 50%, rgba(226,229,233,0.9))",
+                        border: "1px solid rgba(255,255,255,0.6)",
+                      }}
+                      className="rounded-full px-3 py-2 text-center text-sm font-medium text-gray-900 shadow-md shadow-black/10 backdrop-blur-xl hover:opacity-90"
                     >
                       Log in
                     </Link>

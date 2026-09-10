@@ -18,6 +18,7 @@ import { prisma } from "./prisma";
 import { evaluateRisk, countTradingDays } from "./risk-engine";
 import { nextPhase } from "./phase-transition";
 import { assertValidTransition } from "./account-state-machine";
+import { markOrderRefundEligible } from "./refund";
 import type { PhaseType, Prisma } from "@prisma/client";
 
 export async function checkAndAdvancePhase(accountId: string): Promise<void> {
@@ -142,5 +143,9 @@ export async function checkAndAdvancePhase(accountId: string): Promise<void> {
     );
 
     await prisma.$transaction(writes);
+
+    if (next === "FUNDED") {
+      await markOrderRefundEligible(account.id);
+    }
   }
 }

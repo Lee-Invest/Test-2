@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/authz";
 import { accountAdminActionSchema } from "@/lib/validation";
+import { markOrderRefundEligible } from "@/lib/refund";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
           minTradingDays: 0,
         },
       });
+      await markOrderRefundEligible(accountId);
       break;
     case "SET_PHASE":
       if (!phase) return NextResponse.json({ error: "phase required for SET_PHASE" }, { status: 400 });
@@ -89,7 +91,18 @@ export async function POST(req: NextRequest) {
           minTradingDays: currentPhase?.minTradingDays ?? 0,
         },
       });
+      if (phase === "FUNDED") await markOrderRefundEligible(accountId);
       break;
+    case "MARK_REFUNDED": {
+      const acct = await prisma.account.findUnique({ where: { id: accountId }, select: { orderId: true } });
+      if (!acct?.orderId) return NextResponse.json({ error: "This account has no linked order." }, { status: 400 });
+      const order = await prisma.order.findUnique({ where: { id: acct.orderId }, select: { refundEligibleAt: true } });
+      if (!order?.refundEligibleAt) {
+        return NextResponse.json({ error: "This order is not yet eligible for a refund." }, { status: 400 });
+      }
+      await prisma.order.update({ where: { id: acct.orderId }, data: { refundedAt: new Date() } });
+      break;
+    }
   }
 
   await prisma.auditLog.create({

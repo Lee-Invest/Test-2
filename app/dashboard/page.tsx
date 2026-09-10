@@ -46,6 +46,7 @@ interface AccountView {
   availablePayoutCents: number;
   isFailed: boolean;
   breachEvent: { message: string; createdAt: string } | null;
+  refund: { eligible: boolean; refunded: boolean; amountCents: number } | null;
 }
 
 interface Payout {
@@ -214,6 +215,21 @@ export default function DashboardPage() {
                     >
                       {requesting === account.id ? "Requesting…" : "Request Payout"}
                     </button>
+                  </div>
+                )}
+
+                {account.refund?.eligible && (
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-amber-700">Evaluation fee refund</div>
+                      <div className="text-lg font-semibold text-amber-900">
+                        {formatCents(account.refund.amountCents)}{" "}
+                        <span className="text-sm font-normal text-amber-700">(100% — you reached a funded account)</span>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-semibold text-amber-900">
+                      {account.refund.refunded ? "Refunded" : "Processing"}
+                    </span>
                   </div>
                 )}
 

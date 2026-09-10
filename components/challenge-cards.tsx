@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Target, TrendingDown, ShieldAlert, CalendarDays, Infinity as InfinityIcon, Percent } from "lucide-react";
 import { formatCents } from "@/lib/utils";
 import { STATIC_TEMPLATES, type StaticTemplate as Template } from "@/lib/static-templates";
+import { RuleTooltip } from "@/components/rule-tooltip";
 
 // Purely a display grid — every "Start Now" click hands off to the Buy
 // Challenge page (/pricing), which owns the one real checkout flow
@@ -16,20 +17,32 @@ export function ChallengeCards() {
 
   const lossAmount = (t: Template, pct: string) => formatCents(Math.round(t.accountSize * 100 * (Number(pct) / 100)));
 
-  const rows: { icon: React.ElementType; label: string; render: (t: Template) => React.ReactNode }[] = [
+  const floorAfter = (t: Template, pct: string) =>
+    formatCents(t.accountSize * 100 - Math.round(t.accountSize * 100 * (Number(pct) / 100)));
+
+  const rows: {
+    icon: React.ElementType;
+    label: string;
+    explain: (t: Template) => string;
+    render: (t: Template) => React.ReactNode;
+  }[] = [
     {
       icon: Target,
       label: "Phase 1 Target",
+      explain: (t) => `Grow your account balance by ${t.phase1ProfitTargetPct}% during Phase 1 to move on to Phase 2.`,
       render: (t) => <span className="font-semibold text-gray-900">{t.phase1ProfitTargetPct}%</span>,
     },
     {
       icon: Target,
       label: "Phase 2 Target",
+      explain: (t) => `Hit a second, smaller ${t.phase2ProfitTargetPct}% target in Phase 2 to get funded.`,
       render: (t) => <span className="font-semibold text-gray-900">{t.phase2ProfitTargetPct}%</span>,
     },
     {
       icon: TrendingDown,
       label: "Max Daily Loss",
+      explain: (t) =>
+        `Your equity can't drop more than ${t.maxDailyLossPct}% (${lossAmount(t, t.maxDailyLossPct)}) below where it started that trading day, or the account fails.`,
       render: (t) => (
         <span className="font-semibold text-gray-900">
           {t.maxDailyLossPct}% ({lossAmount(t, t.maxDailyLossPct)})
@@ -39,6 +52,8 @@ export function ChallengeCards() {
     {
       icon: ShieldAlert,
       label: "Max Total Loss",
+      explain: (t) =>
+        `Your balance can never fall more than ${t.maxOverallLossPct}% (${lossAmount(t, t.maxOverallLossPct)}) below the starting $${t.accountSize.toLocaleString()} — so it must always stay above ${floorAfter(t, t.maxOverallLossPct)}.`,
       render: (t) => (
         <span className="font-semibold text-gray-900">
           {t.maxOverallLossPct}% ({lossAmount(t, t.maxOverallLossPct)})
@@ -48,17 +63,20 @@ export function ChallengeCards() {
     {
       icon: CalendarDays,
       label: "Min Trading Days",
+      explain: (t) => `You must place at least one trade on ${t.phase1MinTradingDays} separate days in each phase.`,
       render: (t) => <span className="font-semibold text-gray-900">{t.phase1MinTradingDays} days</span>,
     },
     {
       icon: InfinityIcon,
       label: "Trading Period",
+      explain: () => "No time limit on either phase — trade at your own pace.",
       render: () => <span className="font-semibold text-gray-900">Unlimited</span>,
     },
     {
       icon: Percent,
       label: "Payout Split",
-      render: (t) => <span className="font-semibold text-[var(--brand-accent)]">Up to {t.profitSplitTraderPct}%</span>,
+      explain: (t) => `Once funded, you keep ${t.profitSplitTraderPct}% of the profits you withdraw.`,
+      render: (t) => <span className="font-semibold text-[var(--brand-accent)]">{t.profitSplitTraderPct}%</span>,
     },
   ];
 
@@ -113,7 +131,9 @@ export function ChallengeCards() {
                 <div key={row.label} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                   <dt className="flex min-w-0 items-center gap-1.5 text-gray-500">
                     <row.icon size={13} className="shrink-0 text-gray-400" />
-                    <span>{row.label}</span>
+                    <RuleTooltip text={row.explain(t)}>
+                      <span>{row.label}</span>
+                    </RuleTooltip>
                   </dt>
                   <dd className="shrink-0">{row.render(t)}</dd>
                 </div>

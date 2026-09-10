@@ -52,7 +52,7 @@ export const couponUpsertSchema = z.object({
 
 export const accountAdminActionSchema = z.object({
   accountId: z.string().min(1),
-  action: z.enum(["SUSPEND", "REACTIVATE", "RESET", "CLOSE", "MARK_FUNDED", "SET_PHASE"]),
+  action: z.enum(["SUSPEND", "REACTIVATE", "RESET", "CLOSE", "MARK_FUNDED", "SET_PHASE", "MARK_REFUNDED"]),
   phase: z.enum(["PHASE_1", "PHASE_2", "FUNDED"]).optional(),
 });
 
