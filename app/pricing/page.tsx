@@ -35,14 +35,21 @@ export default function BuyChallengePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ templateId: selected.id, couponCode: couponCode || undefined }),
       });
-      const data = await res.json();
-      if (data.url) {
+      const data = await res.json().catch(() => null);
+      if (data?.url) {
         window.location.href = data.url;
-      } else if (data.orderId) {
+        return;
+      } else if (data?.orderId) {
         setMessage(`Order ${data.orderId} created. ${data.error ?? ""}`.trim());
+      } else if (typeof data?.error === "string") {
+        setMessage(data.error);
+      } else if (!res.ok) {
+        setMessage(`Something went wrong (${res.status}). Please try again.`);
       } else {
-        setMessage(data.error ?? "Something went wrong.");
+        setMessage("Something went wrong. Please try again.");
       }
+    } catch {
+      setMessage("Could not reach the server. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }

@@ -10,6 +10,7 @@ import { STATIC_TEMPLATES, type StaticTemplate as Template } from "@/lib/static-
 export function ChallengeCards() {
   const templates = STATIC_TEMPLATES;
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { data: session } = useSession();
   const router = useRouter();
 
@@ -19,16 +20,21 @@ export function ChallengeCards() {
       return;
     }
     setLoadingId(templateId);
+    setError(null);
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ templateId }),
       });
-      const data = await res.json();
-      if (data.url) {
+      const data = await res.json().catch(() => null);
+      if (data?.url) {
         window.location.href = data.url;
+        return;
       }
+      setError(typeof data?.error === "string" ? data.error : "Something went wrong. Please try again.");
+    } catch {
+      setError("Could not reach the server. Please check your connection and try again.");
     } finally {
       setLoadingId(null);
     }
@@ -75,7 +81,11 @@ export function ChallengeCards() {
   ];
 
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+    <div>
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+      )}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
       {templates.map((t, i) => {
         const estCents = Math.round(
           t.accountSize * 100 * (Number(t.phase1ProfitTargetPct) / 100) * (Number(t.profitSplitTraderPct) / 100)
@@ -131,6 +141,7 @@ export function ChallengeCards() {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
