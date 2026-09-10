@@ -39,9 +39,8 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
             is left fully transparent at the bottom with no fade. */}
         {!isRight && (
           <>
-            <div className="absolute inset-x-0 bottom-0 h-24 backdrop-blur-sm" />
-            <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent via-[var(--background)]/50 to-[var(--background)]/85 backdrop-blur-md" />
-            <div className="absolute inset-x-0 bottom-0 h-16 bg-[var(--background)]" />
+            <div className="absolute inset-x-0 bottom-0 h-10 backdrop-blur-sm" />
+            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent via-[var(--background)]/40 to-[var(--background)]/80 backdrop-blur-sm" />
           </>
         )}
       </div>
@@ -51,7 +50,7 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
         className={`pointer-events-none absolute top-6 z-30 hidden max-w-[15rem] text-sm font-semibold italic leading-snug tracking-wide lg:block ${
           isRight ? "right-6" : "left-6"
         }`}
-        style={{ color: "rgba(180, 140, 70, 0.95)", textShadow: "0 1px 3px rgba(255,255,255,0.6)" }}
+        style={{ color: "#b48c46", textShadow: "0 1px 3px rgba(255,255,255,0.6)" }}
       >
         {label}
       </div>

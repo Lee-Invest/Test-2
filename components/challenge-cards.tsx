@@ -106,7 +106,8 @@ export function ChallengeCards() {
             <button
               onClick={() => startChallenge(t.id)}
               disabled={loadingId === t.id}
-              className="mt-4 rounded-xl bg-[var(--brand-primary)]/90 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--brand-primary)]/20 backdrop-blur-xl hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: "#1d3557" }}
+              className="mt-4 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/20 backdrop-blur-xl hover:opacity-90 disabled:opacity-50"
             >
               {loadingId === t.id ? "Starting…" : "Start Now"}
             </button>

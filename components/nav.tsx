@@ -28,11 +28,22 @@ export function Nav() {
             {branding.name}
           </Link>
           <div className="hidden gap-6 md:flex">
-            {links.map((l) => (
-              <Link key={l.href} href={l.href} className="text-sm text-gray-700 hover:text-gray-900">
-                {l.label}
-              </Link>
-            ))}
+            {links.map((l) =>
+              l.href === "/pricing" ? (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  style={{ backgroundColor: "#1d3557" }}
+                  className="rounded-full px-4 py-1.5 text-sm font-semibold text-white shadow-md shadow-black/20 hover:opacity-90"
+                >
+                  {l.label}
+                </Link>
+              ) : (
+                <Link key={l.href} href={l.href} className="text-sm text-gray-700 hover:text-gray-900">
+                  {l.label}
+                </Link>
+              )
+            )}
           </div>
           <div className="flex items-center gap-3">
             {session?.user ? (
@@ -45,19 +56,25 @@ export function Nav() {
                 </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  className="rounded-full border border-white/50 bg-white/30 px-3 py-1.5 text-sm text-gray-900 backdrop-blur-xl hover:bg-white/50"
+                  style={{ backgroundColor: "#1d3557" }}
+                  className="rounded-full px-3 py-1.5 text-sm text-white shadow-md shadow-black/20 hover:opacity-90"
                 >
                   Sign out
                 </button>
               </>
             ) : (
               <>
-                <Link href="/login" className="text-sm text-gray-800 hover:text-gray-900">
+                <Link
+                  href="/login"
+                  style={{ backgroundColor: "#1d3557" }}
+                  className="rounded-full px-3 py-1.5 text-sm font-medium text-white shadow-md shadow-black/20 hover:opacity-90"
+                >
                   Log in
                 </Link>
                 <Link
                   href="/register"
-                  className="rounded-full bg-[var(--brand-primary)]/90 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-xl hover:opacity-90"
+                  style={{ backgroundColor: "#1d3557" }}
+                  className="rounded-full px-3 py-1.5 text-sm font-medium text-white shadow-md shadow-black/20 hover:opacity-90"
                 >
                   Get Started
                 </Link>

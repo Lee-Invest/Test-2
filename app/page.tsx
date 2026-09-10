@@ -24,9 +24,11 @@ export default function Home() {
       <Nav />
       <main className="relative">
         <TreeAccent side="left" />
-        <TreeAccent side="right" />
 
-        <section className="relative z-10 bg-white/35 pb-20 pt-8 backdrop-blur-2xl sm:pb-28 sm:pt-12">
+        <div className="relative">
+          <TreeAccent side="right" />
+
+          <section className="relative z-10 bg-white/35 pb-20 pt-8 backdrop-blur-2xl sm:pb-28 sm:pt-12">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="max-w-2xl">
               <p className="text-sm font-semibold uppercase tracking-widest text-[var(--brand-accent)]">
@@ -97,6 +99,7 @@ export default function Home() {
             <span className="hidden text-gray-300 sm:inline">•</span>
             <span>Up to 80% Profit Split</span>
           </div>
+        </div>
         </div>
 
         <section id="choose-challenge" className="scroll-mt-20 py-16">
