@@ -70,6 +70,15 @@ export async function GET(req: NextRequest) {
   await check("AddonAvailability_table", () => prisma.addonAvailability.count());
   await check("OrderAddon_table", () => prisma.orderAddon.count());
   await check("Coupon_table", () => prisma.coupon.count());
+  await check("ChallengePhase_table", () => prisma.challengePhase.count());
+  await check("Trade_table", () => prisma.trade.count());
+  await check("Payout_table", () => prisma.payout.count());
+  await check("RiskEvent_table", () => prisma.riskEvent.count());
+  await check("Notification_table", () => prisma.notification.count());
+  await check("AuditLog_table", () => prisma.auditLog.count());
+  await check("Account_table_with_relations", () =>
+    prisma.account.findMany({ take: 5, include: { template: true, phases: true, trades: true, order: true } })
+  );
 
   const env = {
     DATABASE_URL_set: Boolean(process.env.DATABASE_URL),
