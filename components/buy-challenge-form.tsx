@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Check, ShieldCheck, TrendingUp, Wallet } from "lucide-react";
@@ -42,7 +42,8 @@ export function BuyChallengeForm() {
     templates[Math.floor(templates.length / 2)]?.id ?? null
   );
   const [couponCode, setCouponCode] = useState("");
-  const [agreed, setAgreed] = useState(false);
+  const agreeRef = useRef<HTMLInputElement>(null);
+  const [showAgreeHint, setShowAgreeHint] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const { data: session } = useSession();
@@ -67,10 +68,19 @@ export function BuyChallengeForm() {
 
   async function startCheckout() {
     if (!selected) return;
-    if (!agreed) {
-      setMessage("Please confirm you've read and agree to the Funded Trader Agreement first.");
+    // Reads the real DOM checkbox value directly instead of trusting a
+    // controlled-input state value — this button was reported as
+    // permanently "stuck disabled" for some users even after checking the
+    // box, which is consistent with something (a browser extension, page
+    // translation, etc.) toggling the native checkbox without React's
+    // change handler firing. Checking .checked here can never disagree with
+    // what's actually on screen.
+    if (!agreeRef.current?.checked) {
+      setShowAgreeHint(true);
+      agreeRef.current?.focus();
       return;
     }
+    setShowAgreeHint(false);
     if (!session) {
       router.push("/login?next=/pricing");
       return;
@@ -211,11 +221,14 @@ export function BuyChallengeForm() {
               page.
             </div>
 
-            <label className="mt-3 flex items-start gap-2 text-xs text-gray-700">
+            <label
+              className={`mt-3 flex items-start gap-2 rounded-md p-1 text-xs text-gray-700 ${showAgreeHint ? "ring-2 ring-amber-400" : ""}`}
+            >
               <input
+                ref={agreeRef}
                 type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
+                defaultChecked={false}
+                onChange={() => setShowAgreeHint(false)}
                 className="mt-0.5 h-4 w-4 rounded border-gray-300"
               />
               <span>I agree to the Funded Trader Agreement and Trading Rules for this account size.</span>
@@ -224,15 +237,15 @@ export function BuyChallengeForm() {
             <button
               type="button"
               onClick={startCheckout}
-              disabled={loading || !agreed}
+              disabled={loading}
               style={{ backgroundColor: "#2563eb" }}
               className="mt-6 w-full rounded-md px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {loading ? "Starting checkout…" : "Buy Challenge"}
+              {loading ? "Starting checkout…" : "Proceed Payout"}
             </button>
-            {!agreed && (
+            {showAgreeHint && (
               <p className="mt-2 text-xs text-amber-600">
-                Check the box above to agree to the Funded Trader Agreement before you can continue.
+                Please check the box above to agree to the Funded Trader Agreement before continuing.
               </p>
             )}
             {message && <p className="mt-3 text-xs text-gray-600">{message}</p>}
