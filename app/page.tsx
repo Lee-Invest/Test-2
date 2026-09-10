@@ -25,41 +25,43 @@ export default function Home() {
       <main className="relative">
         <TreeAccent side="left" />
         <TreeAccent side="right" />
-        <section className="mx-auto max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pb-28 sm:pt-12">
-          <div className="max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--brand-accent)]">
-              {branding.name} Trader Challenge
-            </p>
-            <h1 className="mt-4 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-              Trade our capital. Keep the upside.
-            </h1>
-            <p className="mt-6 text-lg text-gray-600">
-              {branding.name} funds skilled traders who can demonstrate consistent, disciplined risk management
-              through a structured two-phase evaluation. Clear rules, transparent pricing, no guesswork.
-            </p>
-            <div className="mt-8 flex gap-4">
-              <Link
-                href="/pricing"
-                className="rounded-full bg-[var(--brand-primary)]/90 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl hover:opacity-90"
-              >
-                View Challenges
-              </Link>
-              <Link
-                href="/how-it-works"
-                className="rounded-full border border-white/50 bg-white/20 px-6 py-3 text-sm font-semibold text-gray-900 backdrop-blur-xl hover:bg-white/40"
-              >
-                How It Works
-              </Link>
-            </div>
-          </div>
-
-          <div className="mt-16 grid grid-cols-2 gap-4 rounded-2xl border border-white/40 bg-white/15 p-6 shadow-[0_8px_32px_rgba(31,38,135,0.08)] backdrop-blur-2xl sm:grid-cols-4">
-            {stats.map((s) => (
-              <div key={s.label}>
-                <div className="text-2xl font-bold text-gray-900">{s.value}</div>
-                <div className="text-sm text-gray-600">{s.label}</div>
+        <section className="relative z-10 border-b border-white/40 bg-white/35 pb-20 pt-8 backdrop-blur-2xl sm:pb-28 sm:pt-12">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <div className="max-w-2xl">
+              <p className="text-sm font-semibold uppercase tracking-widest text-[var(--brand-accent)]">
+                {branding.name} Trader Challenge
+              </p>
+              <h1 className="mt-4 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+                Trade our capital. Keep the upside.
+              </h1>
+              <p className="mt-6 text-lg text-gray-600">
+                {branding.name} funds skilled traders who can demonstrate consistent, disciplined risk management
+                through a structured two-phase evaluation. Clear rules, transparent pricing, no guesswork.
+              </p>
+              <div className="mt-8 flex gap-4">
+                <Link
+                  href="/pricing"
+                  className="rounded-full bg-[var(--brand-primary)]/90 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl hover:opacity-90"
+                >
+                  View Challenges
+                </Link>
+                <Link
+                  href="/how-it-works"
+                  className="rounded-full border border-white/50 bg-white/20 px-6 py-3 text-sm font-semibold text-gray-900 backdrop-blur-xl hover:bg-white/40"
+                >
+                  How It Works
+                </Link>
               </div>
-            ))}
+            </div>
+
+            <div className="mt-16 grid grid-cols-2 gap-4 rounded-2xl border border-white/40 bg-white/15 p-6 shadow-[0_8px_32px_rgba(31,38,135,0.08)] backdrop-blur-2xl sm:grid-cols-4">
+              {stats.map((s) => (
+                <div key={s.label}>
+                  <div className="text-2xl font-bold text-gray-900">{s.value}</div>
+                  <div className="text-sm text-gray-600">{s.label}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
