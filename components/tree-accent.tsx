@@ -56,10 +56,10 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
 
       <div
         aria-hidden
-        className="pointer-events-none absolute top-6 z-30 hidden max-w-[15rem] overflow-hidden text-sm font-semibold italic leading-snug tracking-wide md:block"
+        className={`pointer-events-none absolute top-6 z-30 hidden w-[15rem] text-sm font-semibold italic leading-snug tracking-wide min-[1820px]:block ${
+          isRight ? "right-6" : "left-6"
+        }`}
         style={{
-          [isRight ? "right" : "left"]: "1.5rem",
-          width: `calc(${clampWidth} - 1.5rem)`,
           color: "#ffffff",
           textShadow: "0 1px 4px rgba(0,0,0,0.6)",
         }}

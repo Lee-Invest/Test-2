@@ -43,7 +43,7 @@ export default function Home() {
                 <Link
                   href="#choose-challenge"
                   className="rounded-full border px-6 py-3 text-sm font-semibold text-white shadow-[0_2px_10px_rgba(0,0,0,0.25)] backdrop-blur-xl"
-                  style={{ backgroundColor: "rgba(29, 53, 87, 0.75)", borderColor: "rgba(29, 53, 87, 0.5)" }}
+                  style={{ backgroundColor: "#1d3557", borderColor: "#1d3557" }}
                 >
                   View Challenges
                 </Link>

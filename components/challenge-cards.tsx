@@ -10,32 +10,42 @@ import { STATIC_TEMPLATES, type StaticTemplate as Template } from "@/lib/static-
 // copies of the same fetch/error-handling code drifting apart.
 export function ChallengeCards() {
   const templates = STATIC_TEMPLATES;
-  const popularIdx = templates.findIndex((t) => t.accountSize === 100_000);
+  const uniqueSizes = [25_000, 50_000];
+
+  const lossAmount = (t: Template, pct: string) => formatCents(Math.round(t.accountSize * 100 * (Number(pct) / 100)));
 
   const rows: { icon: React.ElementType; label: string; render: (t: Template) => React.ReactNode }[] = [
     {
       icon: Target,
-      label: "Phase 1 Profit Target",
-      render: (t) => <span className="font-semibold text-gray-900">{t.phase1ProfitTargetPct} percent</span>,
+      label: "Phase 1 Target",
+      render: (t) => <span className="font-semibold text-gray-900">{t.phase1ProfitTargetPct}%</span>,
     },
     {
       icon: Target,
-      label: "Phase 2 Profit Target",
-      render: (t) => <span className="font-semibold text-gray-900">{t.phase2ProfitTargetPct} percent</span>,
+      label: "Phase 2 Target",
+      render: (t) => <span className="font-semibold text-gray-900">{t.phase2ProfitTargetPct}%</span>,
     },
     {
       icon: TrendingDown,
-      label: "Maximum Daily Loss",
-      render: (t) => <span className="font-semibold text-gray-900">{t.maxDailyLossPct} percent</span>,
+      label: "Max Daily Loss",
+      render: (t) => (
+        <span className="font-semibold text-gray-900">
+          {t.maxDailyLossPct}% ({lossAmount(t, t.maxDailyLossPct)})
+        </span>
+      ),
     },
     {
       icon: ShieldAlert,
-      label: "Maximum Total Loss",
-      render: (t) => <span className="font-semibold text-gray-900">{t.maxOverallLossPct} percent</span>,
+      label: "Max Total Loss",
+      render: (t) => (
+        <span className="font-semibold text-gray-900">
+          {t.maxOverallLossPct}% ({lossAmount(t, t.maxOverallLossPct)})
+        </span>
+      ),
     },
     {
       icon: CalendarDays,
-      label: "Minimum Trading Days",
+      label: "Min Trading Days",
       render: (t) => <span className="font-semibold text-gray-900">{t.phase1MinTradingDays} days</span>,
     },
     {
@@ -46,13 +56,13 @@ export function ChallengeCards() {
     {
       icon: Percent,
       label: "Payout Split",
-      render: (t) => <span className="font-semibold text-[var(--brand-accent)]">Up to {t.profitSplitTraderPct} percent</span>,
+      render: (t) => <span className="font-semibold text-[var(--brand-accent)]">Up to {t.profitSplitTraderPct}%</span>,
     },
   ];
 
   return (
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
-      {templates.map((t, i) => {
+      {templates.map((t) => {
         const estCents = Math.round(
           t.accountSize * 100 * (Number(t.phase1ProfitTargetPct) / 100) * (Number(t.profitSplitTraderPct) / 100)
         );
@@ -60,12 +70,15 @@ export function ChallengeCards() {
           <div
             key={t.id}
             className={`relative flex flex-col rounded-2xl border p-5 pt-7 shadow-[0_8px_32px_rgba(31,38,135,0.1)] backdrop-blur-2xl transition hover:bg-white/30 ${
-              i === popularIdx ? "border-[var(--brand-primary)]/40 bg-white/25" : "border-white/40 bg-white/15"
+              uniqueSizes.includes(t.accountSize) ? "border-[#b48c46]/40 bg-white/25" : "border-white/40 bg-white/15"
             }`}
           >
-            {i === popularIdx && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--brand-primary)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                Best Value
+            {uniqueSizes.includes(t.accountSize) && (
+              <div
+                className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
+                style={{ backgroundColor: "#b48c46" }}
+              >
+                Unique
               </div>
             )}
 
@@ -94,10 +107,10 @@ export function ChallengeCards() {
 
             <dl className="mt-5 space-y-3 border-t border-white/40 pt-4 text-xs">
               {rows.map((row) => (
-                <div key={row.label} className="flex items-center justify-between gap-2">
+                <div key={row.label} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                   <dt className="flex min-w-0 items-center gap-1.5 text-gray-500">
                     <row.icon size={13} className="shrink-0 text-gray-400" />
-                    <span className="truncate">{row.label}</span>
+                    <span>{row.label}</span>
                   </dt>
                   <dd className="shrink-0">{row.render(t)}</dd>
                 </div>

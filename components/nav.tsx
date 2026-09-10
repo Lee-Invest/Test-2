@@ -31,7 +31,7 @@ export function Nav() {
             textOverflow: "ellipsis",
           }}
         >
-          Built by traders, made for traders
+          Created for traders, made for traders
         </span>
         <nav className="relative mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-8 lg:px-12">
           <Link href="/" className="shrink-0 text-lg font-bold tracking-tight text-gray-900">
@@ -66,8 +66,7 @@ export function Nav() {
                 </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  style={{ backgroundColor: "#1d3557" }}
-                  className="rounded-full px-3 py-1.5 text-sm text-white shadow-md shadow-black/20 hover:opacity-90"
+                  className="rounded-full border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
                 >
                   Sign out
                 </button>
@@ -76,17 +75,16 @@ export function Nav() {
               <>
                 <Link
                   href="/login"
-                  style={{ backgroundColor: "#1d3557" }}
-                  className="rounded-full px-3 py-1.5 text-sm font-medium text-white shadow-md shadow-black/20 hover:opacity-90"
+                  className="rounded-full border border-[#1d3557]/30 px-3 py-1.5 text-sm font-medium text-[#1d3557] hover:bg-[#1d3557]/5"
                 >
                   Log in
                 </Link>
                 <Link
                   href="/register"
-                  style={{ backgroundColor: "#1d3557" }}
+                  style={{ backgroundColor: "#3f6b9e" }}
                   className="rounded-full px-3 py-1.5 text-sm font-medium text-white shadow-md shadow-black/20 hover:opacity-90"
                 >
-                  Get Started
+                  Get Funded
                 </Link>
               </>
             )}
@@ -136,8 +134,7 @@ export function Nav() {
                         setMenuOpen(false);
                         signOut({ callbackUrl: "/" });
                       }}
-                      style={{ backgroundColor: "#1d3557" }}
-                      className="rounded-full px-3 py-2 text-center text-sm text-white shadow-md shadow-black/20 hover:opacity-90"
+                      className="rounded-full border border-gray-300 px-3 py-2 text-center text-sm text-gray-700 hover:bg-gray-50"
                     >
                       Sign out
                     </button>
@@ -147,18 +144,17 @@ export function Nav() {
                     <Link
                       href="/login"
                       onClick={() => setMenuOpen(false)}
-                      style={{ backgroundColor: "#1d3557" }}
-                      className="rounded-full px-3 py-2 text-center text-sm font-medium text-white shadow-md shadow-black/20 hover:opacity-90"
+                      className="rounded-full border border-[#1d3557]/30 px-3 py-2 text-center text-sm font-medium text-[#1d3557] hover:bg-[#1d3557]/5"
                     >
                       Log in
                     </Link>
                     <Link
                       href="/register"
                       onClick={() => setMenuOpen(false)}
-                      style={{ backgroundColor: "#1d3557" }}
+                      style={{ backgroundColor: "#3f6b9e" }}
                       className="rounded-full px-3 py-2 text-center text-sm font-medium text-white shadow-md shadow-black/20 hover:opacity-90"
                     >
-                      Get Started
+                      Get Funded
                     </Link>
                   </>
                 )}
