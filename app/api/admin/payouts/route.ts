@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/authz";
 import { payoutActionSchema } from "@/lib/validation";
+import { effectiveProfitSplitPct, nextProfitSplitPct } from "@/lib/profit-split";
 
 export const dynamic = "force-dynamic";
 
@@ -45,10 +46,25 @@ export async function POST(req: NextRequest) {
     CANCEL: "CANCELLED",
   } as const;
 
-  const existing = await prisma.payout.findUnique({ where: { id: payoutId }, include: { account: true } });
+  const existing = await prisma.payout.findUnique({
+    where: { id: payoutId },
+    include: { account: { include: { template: true } } },
+  });
   if (!existing) return NextResponse.json({ error: "Payout not found." }, { status: 404 });
 
   const isTerminal = action === "REJECT" || action === "MARK_PAID" || action === "CANCEL";
+
+  // Scaling plan: each PAID payout bumps the account's own profit split
+  // (starting from the template default) by SCALE_INCREMENT_PCT, capped at
+  // MAX_PROFIT_SPLIT_PCT. See lib/profit-split.ts.
+  let newSplitPct: number | null = null;
+  if (action === "MARK_PAID") {
+    const currentPct = effectiveProfitSplitPct(
+      existing.account.profitSplitPct ? Number(existing.account.profitSplitPct) : null,
+      Number(existing.account.template.profitSplitTraderPct)
+    );
+    newSplitPct = nextProfitSplitPct(currentPct);
+  }
 
   const [payout] = await prisma.$transaction([
     prisma.payout.update({
@@ -78,11 +94,16 @@ export async function POST(req: NextRequest) {
           action === "REJECT"
             ? `Your payout request was rejected: ${rejectionReason}`
             : action === "MARK_PAID"
-            ? `Your payout of $${(existing.traderShareCents / 100).toFixed(2)} has been paid.`
+            ? `Your payout of $${(existing.traderShareCents / 100).toFixed(2)} has been paid.${
+                newSplitPct ? ` Your profit split is now ${newSplitPct}%.` : ""
+              }`
             : `Your payout request status changed to ${statusMap[action]}.`,
       },
     }),
+    ...(newSplitPct
+      ? [prisma.account.update({ where: { id: existing.account.id }, data: { profitSplitPct: newSplitPct } })]
+      : []),
   ]);
 
-  return NextResponse.json({ payout });
+  return NextResponse.json({ payout, newProfitSplitPct: newSplitPct });
 }

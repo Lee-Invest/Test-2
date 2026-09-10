@@ -22,7 +22,7 @@ const roadmap = [
   {
     icon: Wallet,
     title: "Funded & Paid",
-    body: "Trade a funded account and request payouts once you're eligible — you keep your profit split of every withdrawal. Your one-time evaluation fee is also refunded 100% the moment you get funded.",
+    body: "Trade a funded account and request payouts once you're eligible. You start at an 80% profit split, scaling up to 95% each time you get paid — and your evaluation fee is refunded 100% the moment you get funded.",
   },
 ];
 

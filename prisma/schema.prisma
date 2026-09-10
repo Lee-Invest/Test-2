@@ -238,6 +238,12 @@ model Account {
 
   isActive Boolean @default(true)
 
+  // Scaling plan: the funded profit split starts at the template's default
+  // (80%) and increases each time a payout is marked PAID (see
+  // lib/profit-split.ts), up to a hard cap of 95%. Null means "use the
+  // template default" — most accounts, before their first paid payout.
+  profitSplitPct Decimal? @db.Decimal(5, 2)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

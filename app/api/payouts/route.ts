@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/authz";
 import { calculatePayout } from "@/lib/risk-engine";
 import { checkPayoutEligibility } from "@/lib/payout-eligibility";
+import { effectiveProfitSplitPct } from "@/lib/profit-split";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,10 @@ export async function GET() {
         template: {
           minPayoutCents: account.template.minPayoutCents,
           payoutCycleDays: account.template.payoutCycleDays,
-          profitSplitTraderPct: Number(account.template.profitSplitTraderPct),
+          profitSplitTraderPct: effectiveProfitSplitPct(
+            account.profitSplitPct ? Number(account.profitSplitPct) : null,
+            Number(account.template.profitSplitTraderPct)
+          ),
         },
         hasOpenBreach,
       }),

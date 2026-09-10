@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/authz";
 import { evaluateRisk, computeTradingStats, countTradingDays, calculatePayout } from "@/lib/risk-engine";
 import { checkAndAdvancePhase } from "@/lib/phase-advance";
+import { effectiveProfitSplitPct } from "@/lib/profit-split";
 
 export const dynamic = "force-dynamic";
 
@@ -71,11 +72,11 @@ export async function GET() {
     const isFailed = currentPhase?.status === "FAILED";
 
     const isFunded = currentPhase?.type === "FUNDED" && currentPhase.status === "FUNDED";
-    const payoutCalc = calculatePayout(
-      account.startingBalanceCents,
-      account.currentBalanceCents,
+    const profitSplitPct = effectiveProfitSplitPct(
+      account.profitSplitPct ? Number(account.profitSplitPct) : null,
       Number(account.template.profitSplitTraderPct)
     );
+    const payoutCalc = calculatePayout(account.startingBalanceCents, account.currentBalanceCents, profitSplitPct);
 
     return {
       id: account.id,
@@ -91,7 +92,7 @@ export async function GET() {
       stats,
       trades: account.trades.slice(0, 100),
       isFunded,
-      profitSplitTraderPct: Number(account.template.profitSplitTraderPct),
+      profitSplitTraderPct: profitSplitPct,
       availablePayoutCents: isFunded ? payoutCalc.traderShareCents : 0,
       isFailed,
       breachEvent: isFailed
