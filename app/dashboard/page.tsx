@@ -79,6 +79,11 @@ export default function DashboardPage() {
   const [payoutMessage, setPayoutMessage] = useState<string | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [payoutsError, setPayoutsError] = useState<string | null>(null);
+  // Purely diagnostic: proves client JS actually mounted on this page (as
+  // opposed to a fetch that's genuinely hanging server-side, or JS never
+  // running at all — the "Loading…" text alone can't tell those apart).
+  const [mounted, setMounted] = useState(false);
+  const [elapsedSec, setElapsedSec] = useState(0);
 
   // Both loaders previously had no .catch: a network error or a non-JSON
   // (e.g. HTML error page) response would silently leave accounts/payouts
@@ -86,31 +91,38 @@ export default function DashboardPage() {
   // gone wrong.
   function loadDashboard() {
     setDashboardError(null);
-    fetch("/api/dashboard")
+    fetch("/api/dashboard", { signal: AbortSignal.timeout(15_000) })
       .then(async (r) => {
         const data = await r.json().catch(() => null);
         if (!r.ok || !data) throw new Error(data?.error ? JSON.stringify(data.error) : `Request failed (${r.status})`);
         return data;
       })
       .then((d) => setAccounts(d.accounts ?? []))
-      .catch((err) => setDashboardError(err instanceof Error ? err.message : "Failed to load dashboard."));
+      .catch((err) =>
+        setDashboardError(err?.name === "TimeoutError" ? "Timed out after 15s — the server never responded." : err instanceof Error ? err.message : "Failed to load dashboard.")
+      );
   }
 
   function loadPayouts() {
     setPayoutsError(null);
-    fetch("/api/payouts")
+    fetch("/api/payouts", { signal: AbortSignal.timeout(15_000) })
       .then(async (r) => {
         const data = await r.json().catch(() => null);
         if (!r.ok || !data) throw new Error(data?.error ? JSON.stringify(data.error) : `Request failed (${r.status})`);
         return data;
       })
       .then((d) => setPayouts(d.payouts ?? []))
-      .catch((err) => setPayoutsError(err instanceof Error ? err.message : "Failed to load payouts."));
+      .catch((err) =>
+        setPayoutsError(err?.name === "TimeoutError" ? "Timed out after 15s — the server never responded." : err instanceof Error ? err.message : "Failed to load payouts.")
+      );
   }
 
   useEffect(() => {
+    setMounted(true);
     loadDashboard();
     loadPayouts();
+    const interval = setInterval(() => setElapsedSec((s) => s + 1), 1000);
+    return () => clearInterval(interval);
   }, []);
 
   async function requestPayout(accountId: string) {
@@ -139,6 +151,9 @@ export default function DashboardPage() {
       <Nav />
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <h1 className="text-3xl font-bold text-gray-900">Trader Dashboard</h1>
+        <p className="mt-1 text-xs text-gray-400">
+          {mounted ? `JS active — ${elapsedSec}s elapsed` : "JS not yet mounted"}
+        </p>
 
         <div className="mt-6 flex gap-2 border-b border-gray-200">
           <TabButton active={tab === "overview"} onClick={() => setTab("overview")}>
