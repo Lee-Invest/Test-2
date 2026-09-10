@@ -16,6 +16,7 @@ export async function getDashboardAccounts(userId: string) {
     where: { userId },
     include: {
       template: true,
+      platform: true,
       phases: { orderBy: { createdAt: "desc" } },
       trades: { orderBy: { openedAt: "desc" } },
       order: { select: { totalCents: true, refundEligibleAt: true, refundedAt: true } },
@@ -96,7 +97,32 @@ export async function getDashboardAccounts(userId: string) {
             amountCents: account.order.totalCents,
           }
         : null,
+      platform: account.platform
+        ? {
+            name: account.platform.name,
+            accessUrl: account.platform.accessUrl,
+            downloadUrl: account.platform.downloadUrl,
+            webUrl: account.platform.webUrl,
+            setupSteps: account.platform.setupSteps,
+          }
+        : null,
+      credentials:
+        account.platformLogin && account.platformServerName
+          ? {
+              login: account.platformLogin,
+              server: account.platformServerName,
+              password: account.platformPasswordDisplay,
+            }
+          : null,
     };
+  });
+}
+
+// "My saved challenges" on the dashboard.
+export async function getSavedConfigurations(userId: string) {
+  return prisma.savedConfiguration.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
   });
 }
 

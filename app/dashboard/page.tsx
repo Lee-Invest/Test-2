@@ -3,8 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Nav } from "@/components/nav";
 import { formatCents } from "@/lib/utils";
-import { getDashboardAccounts } from "@/lib/dashboard-data";
+import { getDashboardAccounts, getSavedConfigurations } from "@/lib/dashboard-data";
 import { DashboardTabs } from "@/components/dashboard-tabs";
+import { STATIC_TEMPLATES } from "@/lib/static-templates";
+import { STATIC_PLATFORMS } from "@/lib/static-platforms";
 
 const PHASES = ["PHASE_1", "PHASE_2", "FUNDED"];
 
@@ -16,6 +18,7 @@ export default async function DashboardPage() {
   if (!session?.user) redirect("/login?next=/dashboard");
 
   const accounts = await getDashboardAccounts(session.user.id);
+  const savedConfigs = await getSavedConfigurations(session.user.id);
 
   return (
     <>
@@ -119,6 +122,55 @@ export default async function DashboardPage() {
               </div>
             )}
 
+            {account.credentials && (
+              <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Trading server access
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+                  <CredentialField label="Login ID" value={account.credentials.login} />
+                  <CredentialField label="Server" value={account.credentials.server} />
+                  <CredentialField label="Platform" value={account.platform?.name ?? "—"} />
+                  {account.credentials.password && (
+                    <CredentialField label="Password" value={account.credentials.password} />
+                  )}
+                </div>
+                <p className="mt-2 text-[11px] text-gray-400">
+                  Simulated demo credentials for this environment — not a live connection to any real trading server.
+                </p>
+              </div>
+            )}
+
+            {account.platform && (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                {account.platform.downloadUrl && (
+                  <a href={account.platform.downloadUrl} className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                    Download {account.platform.name}
+                  </a>
+                )}
+                {account.platform.webUrl && (
+                  <a href={account.platform.webUrl} className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                    Open {account.platform.name} Web
+                  </a>
+                )}
+                {account.platform.accessUrl && !account.platform.webUrl && (
+                  <a href={account.platform.accessUrl} className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                    Open {account.platform.name}
+                  </a>
+                )}
+                {account.platform.setupSteps.length > 0 && (
+                  <details className="ml-auto text-xs">
+                    <summary className="cursor-pointer font-medium text-[var(--brand-primary)]">How to connect</summary>
+                    <ol className="mt-2 list-decimal space-y-1 pl-4 text-gray-600">
+                      {account.platform.setupSteps.map((step, i) => (
+                        <li key={i}>{step}</li>
+                      ))}
+                    </ol>
+                  </details>
+                )}
+              </div>
+            )}
+
             <div className="mt-8">
               <h3 className="font-semibold text-gray-900">Trade History</h3>
               <div className="mt-3 overflow-x-auto">
@@ -152,8 +204,47 @@ export default async function DashboardPage() {
             </div>
           </section>
         ))}
+
+        {savedConfigs.length > 0 && (
+          <section className="mt-10">
+            <h2 className="text-lg font-semibold text-gray-900">My saved challenges</h2>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {savedConfigs.map((c) => {
+                const template = STATIC_TEMPLATES.find((t) => t.id === c.templateId);
+                const platform = STATIC_PLATFORMS.find((p) => p.id === c.platformId);
+                const url = new URLSearchParams();
+                url.set("template", c.templateId);
+                if (c.platformId) url.set("platform", c.platformId);
+                if (c.programId) url.set("program", c.programId);
+                for (const id of c.addonIds) url.append("addon", id);
+                return (
+                  <a
+                    key={c.id}
+                    href={`/pricing?${url.toString()}`}
+                    className="rounded-xl border border-gray-200 bg-white p-4 text-sm shadow-sm hover:border-[var(--brand-primary)]"
+                  >
+                    <div className="font-semibold text-gray-900">{c.name}</div>
+                    <div className="mt-1 text-gray-500">
+                      {template ? `$${template.accountSize.toLocaleString()}` : "—"} · 2-Step
+                      {platform ? ` · ${platform.name}` : ""}
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </main>
     </>
+  );
+}
+
+function CredentialField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wide text-gray-400">{label}</div>
+      <div className="mt-0.5 font-mono text-sm text-gray-900">{value}</div>
+    </div>
   );
 }
 

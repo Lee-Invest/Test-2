@@ -51,9 +51,9 @@ export default async function CheckoutSuccessPage({ searchParams }: { searchPara
           >
             Open Dashboard
           </a>
-          {owned?.platform?.accessUrl && (
+          {(owned?.platform?.webUrl || owned?.platform?.downloadUrl || owned?.platform?.accessUrl) && (
             <a
-              href={owned.platform.accessUrl}
+              href={owned.platform!.webUrl ?? owned.platform!.downloadUrl ?? owned.platform!.accessUrl!}
               className="rounded-xl border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
             >
               Trading Platform
@@ -63,6 +63,19 @@ export default async function CheckoutSuccessPage({ searchParams }: { searchPara
             View Rules
           </a>
         </div>
+
+        {owned?.platform && owned.platform.setupSteps.length > 0 && (
+          <details className="mt-6 text-left text-sm">
+            <summary className="cursor-pointer font-medium text-[var(--brand-primary)]">
+              How to connect to {owned.platform.name}
+            </summary>
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-600">
+              {owned.platform.setupSteps.map((step, i) => (
+                <li key={i}>{step}</li>
+              ))}
+            </ol>
+          </details>
+        )}
       </main>
       <Footer />
     </>

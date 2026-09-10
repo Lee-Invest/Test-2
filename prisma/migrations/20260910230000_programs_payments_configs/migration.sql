@@ -103,3 +103,27 @@ INSERT INTO "MultiAccountDiscount" ("id", "accountIndex", "discountPct", "active
   ('mad-2', 2, 10.00, true),
   ('mad-3', 3, 15.00, true)
 ON CONFLICT ("accountIndex") DO NOTHING;
+
+-- Platform download/web access + "how to connect" steps, only filled in
+-- where still empty (never overwrites an admin's own edits on a re-run).
+UPDATE "TradingPlatform" SET
+  "downloadUrl" = 'https://www.metatrader4.com/en/download',
+  "webUrl" = 'https://www.metatrader4.com/en/trading-platform/web-trading-platform',
+  "setupSteps" = ARRAY['Download and install MetaTrader 4', 'Choose "Login to an existing account"', 'Enter your Login ID, Password, and Server from your dashboard', 'Verify your account balance matches your dashboard']
+WHERE "slug" = 'mt4' AND "downloadUrl" IS NULL;
+
+UPDATE "TradingPlatform" SET
+  "downloadUrl" = 'https://www.metatrader5.com/en/download',
+  "webUrl" = 'https://www.metatrader5.com/en/trading-platform/web-trading-platform',
+  "setupSteps" = ARRAY['Download and install MetaTrader 5', 'Choose "Login to an existing account"', 'Enter your Login ID, Password, and Server from your dashboard', 'Verify your account balance matches your dashboard']
+WHERE "slug" = 'mt5' AND "downloadUrl" IS NULL;
+
+UPDATE "TradingPlatform" SET
+  "webUrl" = 'https://ctrader.com/webtrader/',
+  "setupSteps" = ARRAY['Open cTrader (desktop, web, or mobile)', 'Choose "Add existing account"', 'Enter your Login ID, Password, and Server from your dashboard', 'Connect and verify your account balance']
+WHERE "slug" = 'ctrader' AND "webUrl" IS NULL;
+
+UPDATE "TradingPlatform" SET
+  "webUrl" = 'https://match-trader.com/platform',
+  "setupSteps" = ARRAY['Open Match-Trader in your browser', 'Log in with your Login ID and Password from your dashboard', 'Select your Server if prompted', 'Verify your account balance matches your dashboard']
+WHERE "slug" = 'match-trader' AND "webUrl" IS NULL;
