@@ -15,7 +15,8 @@ const MAX_PHOTO_WIDTH_PX = 480;
 
 // (100vw - content)/2 is the space on one side of the centered content; we
 // reserve some of that as padding and clamp the rest between 0 and a max.
-const clampWidth = `clamp(0px, calc((100vw - ${CONTENT_WIDTH_PX}px) / 2 - ${GUTTER_PADDING_PX}px), ${MAX_PHOTO_WIDTH_PX}px)`;
+const MIN_PHOTO_WIDTH_PX = 10;
+const clampWidth = `clamp(${MIN_PHOTO_WIDTH_PX}px, calc((100vw - ${CONTENT_WIDTH_PX}px) / 2 - ${GUTTER_PADDING_PX}px), ${MAX_PHOTO_WIDTH_PX}px)`;
 
 export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
   const isRight = side === "right";
@@ -26,7 +27,7 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
     <>
       <div
         aria-hidden
-        className={`pointer-events-none absolute z-20 hidden overflow-hidden md:block ${
+        className={`pointer-events-none absolute z-20 overflow-hidden ${
           isRight ? "right-0 inset-y-0" : "left-0 inset-y-0"
         }`}
         style={{
@@ -41,12 +42,16 @@ export function TreeAccent({ side = "left" }: { side?: "left" | "right" }) {
           alt=""
           className={`h-full w-full object-cover ${isRight ? "object-bottom" : "object-top"}`}
         />
+        {/* Inner-edge fade — a percentage of the (possibly very narrow)
+            container width, so a tiny sliver still shows some photo instead
+            of being entirely swallowed by a fixed-pixel fade zone. */}
         <div
-          className={`absolute inset-y-0 w-24 backdrop-blur-md ${
+          className={`absolute inset-y-0 backdrop-blur-md ${
             isRight
               ? "left-0 bg-gradient-to-l from-transparent to-[var(--background)]"
               : "right-0 bg-gradient-to-r from-transparent to-[var(--background)]"
           }`}
+          style={{ width: "40%", maxWidth: "6rem" }}
         />
         {/* Bottom fade — layered so the photo dissolves gradually into the
             page background instead of ending on a visible edge. */}

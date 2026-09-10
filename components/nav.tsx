@@ -23,7 +23,7 @@ export function Nav() {
           className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 whitespace-nowrap text-xs font-semibold leading-none tracking-[0.12em] min-[1700px]:block"
           style={{ color: "rgba(180, 140, 70, 0.95)" }}
         >
-          Created for traders, made for traders
+          Made by traders, Created for traders
         </span>
         <nav className="relative mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-8 lg:px-12">
           <Link href="/" className="shrink-0 text-lg font-bold tracking-tight text-gray-900">
@@ -35,7 +35,7 @@ export function Nav() {
                 <Link
                   key={l.href}
                   href={l.href}
-                  style={{ backgroundColor: "#1d3557" }}
+                  style={{ backgroundColor: "#2563eb" }}
                   className="rounded-full px-4 py-1.5 text-sm font-semibold text-white shadow-md shadow-black/20 hover:opacity-90"
                 >
                   {l.label}
@@ -67,13 +67,14 @@ export function Nav() {
               <>
                 <Link
                   href="/login"
-                  className="rounded-full border border-[#1d3557]/30 px-3 py-1.5 text-sm font-medium text-[#1d3557] hover:bg-[#1d3557]/5"
+                  style={{ backgroundColor: "#c0c0c5" }}
+                  className="rounded-full px-3 py-1.5 text-sm font-medium text-gray-900 shadow-md shadow-black/10 hover:opacity-90"
                 >
                   Log in
                 </Link>
                 <Link
                   href="/register"
-                  style={{ backgroundColor: "#3f6b9e" }}
+                  style={{ backgroundColor: "#2563eb" }}
                   className="rounded-full px-3 py-1.5 text-sm font-medium text-white shadow-md shadow-black/20 hover:opacity-90"
                 >
                   Get Funded
@@ -136,14 +137,15 @@ export function Nav() {
                     <Link
                       href="/login"
                       onClick={() => setMenuOpen(false)}
-                      className="rounded-full border border-[#1d3557]/30 px-3 py-2 text-center text-sm font-medium text-[#1d3557] hover:bg-[#1d3557]/5"
+                      style={{ backgroundColor: "#c0c0c5" }}
+                      className="rounded-full px-3 py-2 text-center text-sm font-medium text-gray-900 shadow-md shadow-black/10 hover:opacity-90"
                     >
                       Log in
                     </Link>
                     <Link
                       href="/register"
                       onClick={() => setMenuOpen(false)}
-                      style={{ backgroundColor: "#3f6b9e" }}
+                      style={{ backgroundColor: "#2563eb" }}
                       className="rounded-full px-3 py-2 text-center text-sm font-medium text-white shadow-md shadow-black/20 hover:opacity-90"
                     >
                       Get Funded
