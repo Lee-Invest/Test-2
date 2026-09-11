@@ -126,6 +126,11 @@ export function ChallengeCards() {
               <span className="font-semibold text-[var(--brand-accent)]">{formatCents(estCents)}</span>
             </div>
 
+            <div className="mt-2 text-center text-xs text-gray-500">
+              Challenge Refund{" "}
+              <span className="font-semibold text-gray-900">100% back once funded</span>
+            </div>
+
             <dl className="mt-5 space-y-3 border-t border-white/40 pt-4 text-xs">
               {rows.map((row) => (
                 <div key={row.label} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
