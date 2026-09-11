@@ -245,74 +245,85 @@ export default async function BuyChallengePage({
 
             <Section step={2} title="Choose your account size">
               <form method="GET" action="/pricing" id="configurator-form">
-                <div
-                  data-role="size-selector"
-                  className="grid grid-cols-2 gap-3 sm:grid-cols-5"
-                >
-                  <input type="hidden" name="coupon" value={couponCode} />
-                  {templates.map((t) => (
-                    <label
-                      key={t.id}
-                      data-size-option={t.id}
-                      className="group relative cursor-pointer rounded-2xl border border-white/60 bg-white/60 p-4 text-center shadow-sm backdrop-blur-xl transition hover:bg-white/80 has-[:checked]:border-[var(--brand-primary)] has-[:checked]:bg-white has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/30"
-                    >
-                      <input
-                        type="radio"
-                        name="template"
-                        value={t.id}
-                        defaultChecked={t.id === selected.id}
-                        className="peer sr-only"
-                      />
-                      <div className="text-lg font-bold text-gray-900">${(t.accountSize / 1000).toFixed(0)}K</div>
-                      <div className="mt-1 text-xs text-gray-500">{formatCents(t.priceCents)}</div>
-                      <div
-                        aria-hidden
-                        className="pointer-events-none absolute -top-2 -right-2 hidden h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white peer-checked:flex"
+                <input type="hidden" name="coupon" value={couponCode} />
+                <div data-role="size-selector" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {templates.map((t) => {
+                    const isChecked = t.id === selected.id;
+                    const isGold = t.accountSize === 200_000;
+                    const isUnique = t.accountSize === 25_000 || t.accountSize === 50_000;
+                    const estCents = Math.round(
+                      t.accountSize * 100 * (Number(t.phase1ProfitTargetPct) / 100) * (Number(t.profitSplitTraderPct) / 100)
+                    );
+                    return (
+                      <label
+                        key={t.id}
+                        data-size-option={t.id}
+                        className="relative flex cursor-pointer flex-col rounded-2xl border bg-white/70 p-5 pt-7 shadow-[0_8px_32px_rgba(31,38,135,0.06)] backdrop-blur-2xl transition hover:bg-white/90 has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/40"
+                        style={{ borderColor: isGold ? "#b48c46" : "rgba(15,23,42,0.1)", borderWidth: isGold ? 2 : 1 }}
                       >
-                        <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
-                          <path d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.4 7.4a1 1 0 0 1-1.4 0L3.3 9.5a1 1 0 1 1 1.4-1.4l3.9 3.9 6.7-6.7a1 1 0 0 1 1.4 0Z" />
-                        </svg>
-                      </div>
-                    </label>
-                  ))}
+                        <input type="radio" name="template" value={t.id} defaultChecked={isChecked} className="peer sr-only" />
+
+                        {isUnique && (
+                          <div
+                            className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
+                            style={{ backgroundColor: "#b48c46" }}
+                          >
+                            Unique
+                          </div>
+                        )}
+
+                        <div className="text-center">
+                          <div className="text-xs uppercase tracking-wide text-gray-500">Account Size</div>
+                          <div className="text-xl font-bold text-gray-900">${t.accountSize.toLocaleString()}</div>
+                        </div>
+
+                        <div className="mt-4 text-center">
+                          <div className="text-2xl font-bold text-gray-900">{formatCents(t.priceCents)}</div>
+                          <div className="text-xs text-gray-500">One-Time Evaluation Fee</div>
+                        </div>
+
+                        <span className="mt-4 flex items-center justify-center gap-1.5 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 peer-checked:hidden">
+                          Select
+                        </span>
+                        <span
+                          className="mt-4 hidden items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-white peer-checked:flex"
+                          style={{ backgroundColor: "#1d3557" }}
+                        >
+                          ✓ Selected
+                        </span>
+
+                        <div className="mt-3 text-center text-xs text-gray-500">
+                          Estimated First Payout{" "}
+                          <span className="font-semibold text-[var(--brand-accent)]">{formatCents(estCents)}</span>
+                        </div>
+
+                        <dl className="mt-5 space-y-3 border-t border-gray-200 pt-4 text-xs">
+                          <SizeCardRow label="Phase 1 Target" value={`${t.phase1ProfitTargetPct}%`} />
+                          <SizeCardRow label="Phase 2 Target" value={`${t.phase2ProfitTargetPct}%`} />
+                          <SizeCardRow label="Max Daily Loss" value={`${t.maxDailyLossPct}%`} />
+                          <SizeCardRow label="Max Total Loss" value={`${t.maxOverallLossPct}%`} />
+                          <SizeCardRow label="Min Trading Days" value={`${t.phase1MinTradingDays} days`} />
+                          <SizeCardRow label="Profit Split" value={`${t.profitSplitTraderPct}%`} accent />
+                        </dl>
+                      </label>
+                    );
+                  })}
                 </div>
                 {/* Always visible, never JS/noscript-gated: the selection
                     ring above updates instantly via pure CSS regardless of
-                    JS, and ConfiguratorClient live-updates the numbers below
-                    without reloading — but if that script never runs for any
-                    reason, this button is the one guaranteed way to actually
-                    apply a new selection (full reload, same as before). */}
+                    JS, and ConfiguratorClient live-updates the rest of the
+                    page without reloading — but if that script never runs
+                    for any reason, this button is the one guaranteed way to
+                    actually apply a new selection (full reload, same as
+                    before). */}
                 <button
                   type="submit"
-                  className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="mt-5 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                   data-role="apply-selection"
                 >
                   Update
                 </button>
               </form>
-
-              <div className="mt-5 rounded-2xl border border-white/60 bg-white/70 p-5 shadow-sm backdrop-blur-xl" data-role="account-detail">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-2xl font-bold text-gray-900" data-field="account-size">
-                    ${selected.accountSize.toLocaleString()}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    Evaluation Fee <span className="font-semibold text-gray-900" data-field="fee">{formatCents(selected.priceCents)}</span>
-                  </span>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-                  <RuleRow label="Phase 1 Target" value={`${selected.phase1ProfitTargetPct}%`} field="p1-target" />
-                  <RuleRow label="Phase 2 Target" value={`${selected.phase2ProfitTargetPct}%`} field="p2-target" />
-                  <RuleRow label="Daily Loss" value={`${selected.maxDailyLossPct}%`} field="daily-loss" emphasis />
-                  <RuleRow label="Maximum Loss" value={`${selected.maxOverallLossPct}%`} field="max-loss" emphasis />
-                  <RuleRow
-                    label="Min Trading Days"
-                    value={`${selected.phase1MinTradingDays} / ${selected.phase2MinTradingDays}`}
-                    field="min-days"
-                  />
-                  <RuleRow label="Profit Split" value={`${selected.profitSplitTraderPct}%`} field="profit-split" emphasis />
-                </div>
-              </div>
             </Section>
 
             <Section step={3} title="Choose your trading platform">
@@ -535,13 +546,11 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RuleRow({ label, value, field, emphasis }: { label: string; value: string; field: string; emphasis?: boolean }) {
+function SizeCardRow({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className={`rounded-xl border p-3 ${emphasis ? "border-gray-900/10 bg-gray-900/[0.03]" : "border-gray-200 bg-gray-50"}`}>
-      <div className="text-[10px] uppercase tracking-wide text-gray-400">{label}</div>
-      <div className={`mt-0.5 font-semibold text-gray-900 ${emphasis ? "text-base" : ""}`} data-field={field}>
-        {value}
-      </div>
+    <div className="flex items-center justify-between gap-2">
+      <dt className="text-gray-500">{label}</dt>
+      <dd className={`font-semibold ${accent ? "text-[var(--brand-accent)]" : "text-gray-900"}`}>{value}</dd>
     </div>
   );
 }

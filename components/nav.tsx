@@ -15,8 +15,8 @@ const links = [
 // client fetch), the mobile menu opens via a hidden checkbox + CSS (the
 // "checkbox hack" — :checked driving a sibling's visibility with zero JS),
 // and "Sign out" is a native <form> posting to NextAuth's own
-// /api/auth/callback/signout (the CSRF token comes from middleware.ts,
-// same reasoning as the /login form). Nothing here depends on client JS.
+// /api/auth/signout (the CSRF token comes from middleware.ts, same
+// reasoning as the /login form). Nothing here depends on client JS.
 export async function Nav() {
   const session = await getServerSession(authOptions);
   const csrfToken = headers().get("x-csrf-token") ?? "";
@@ -152,7 +152,7 @@ export async function Nav() {
 
 function SignOutForm({ csrfToken, block }: { csrfToken: string; block?: boolean }) {
   return (
-    <form action="/api/auth/callback/signout" method="POST" className={block ? "w-full" : undefined}>
+    <form action="/api/auth/signout" method="POST" className={block ? "w-full" : undefined}>
       <input type="hidden" name="csrfToken" value={csrfToken} />
       <input type="hidden" name="callbackUrl" value="/" />
       <button
