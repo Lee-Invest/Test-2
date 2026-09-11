@@ -11,8 +11,16 @@ const TEMPLATE_DEFAULTS = [
   { accountSize: 200_000, priceCents: 102800 },
 ];
 
+// Explicit ids here MUST match lib/static-platforms.ts / lib/static-addons.ts
+// exactly — those files exist so pricing pages can render without a live DB
+// round trip, but /api/checkout looks these rows up by id. Without a fixed
+// id, upsert would create a random cuid that never matches what the
+// static-display layer sends at checkout, and every platform/add-on
+// purchase would fail with "no longer available" despite looking fine on
+// the page.
 const PLATFORM_DEFAULTS = [
   {
+    id: "platform-mt4",
     slug: "mt4",
     name: "MetaTrader 4",
     tagline: "The original — simple, reliable, widely supported by third-party tools.",
@@ -21,6 +29,7 @@ const PLATFORM_DEFAULTS = [
     sortOrder: 1,
   },
   {
+    id: "platform-mt5",
     slug: "mt5",
     name: "MetaTrader 5",
     tagline: "Advanced charting and a broader instrument set, with full algo support.",
@@ -29,6 +38,7 @@ const PLATFORM_DEFAULTS = [
     sortOrder: 2,
   },
   {
+    id: "platform-ctrader",
     slug: "ctrader",
     name: "cTrader",
     tagline: "Depth-of-market execution and a clean, modern interface.",
@@ -37,6 +47,7 @@ const PLATFORM_DEFAULTS = [
     sortOrder: 3,
   },
   {
+    id: "platform-match-trader",
     slug: "match-trader",
     name: "Match-Trader",
     tagline: "Fully browser-based — nothing to install.",
@@ -48,28 +59,40 @@ const PLATFORM_DEFAULTS = [
 
 const ADDON_DEFAULTS = [
   {
-    slug: "priority-support",
-    name: "Priority Support",
-    description: "Skip the queue — faster response times from the support team.",
+    id: "addon-swap-free",
+    slug: "swap-free",
+    name: "Swap Free Account",
+    description: "No overnight swap/rollover fees on any position — trade multi-day without the carry cost.",
     priceCents: 1900,
     billing: "ONE_TIME" as const,
     sortOrder: 1,
   },
   {
-    slug: "performance-analytics",
-    name: "Performance Analytics",
-    description: "Deeper trade breakdowns: drawdown curves, R-multiples, and session heatmaps.",
+    id: "addon-biweekly-payout",
+    slug: "biweekly-payout",
+    name: "Bi-Weekly Payout",
+    description: "Once funded, request a payout every two weeks instead of the standard cycle.",
     priceCents: 2900,
     billing: "ONE_TIME" as const,
     sortOrder: 2,
   },
   {
-    slug: "reset-protection",
-    name: "Reset Protection",
-    description: "One free challenge reset if you fail your first evaluation attempt.",
-    priceCents: 3900,
+    id: "addon-weekly-payout",
+    slug: "weekly-payout",
+    name: "Weekly Payout",
+    description: "Once funded, request a payout every week instead of the standard cycle.",
+    priceCents: 4900,
     billing: "ONE_TIME" as const,
     sortOrder: 3,
+  },
+  {
+    id: "addon-monthly-payout",
+    slug: "monthly-payout",
+    name: "Monthly Payout",
+    description: "Once funded, request a payout once a month on a fixed schedule.",
+    priceCents: 1500,
+    billing: "ONE_TIME" as const,
+    sortOrder: 4,
   },
 ];
 
@@ -122,7 +145,7 @@ async function main() {
   const platforms = [];
   for (const p of PLATFORM_DEFAULTS) {
     const platform = await prisma.tradingPlatform.upsert({
-      where: { slug: p.slug },
+      where: { id: p.id },
       update: { name: p.name, tagline: p.tagline, features: p.features, badges: p.badges, sortOrder: p.sortOrder },
       create: { ...p, active: true },
     });
@@ -158,9 +181,9 @@ async function main() {
   // ---------------------------------------------------------------------
   for (const a of ADDON_DEFAULTS) {
     await prisma.addon.upsert({
-      where: { slug: a.slug },
+      where: { id: a.id },
       update: { name: a.name, description: a.description, priceCents: a.priceCents, sortOrder: a.sortOrder },
-      create: a,
+      create: { ...a, active: true },
     });
   }
   console.log(`Created/updated ${ADDON_DEFAULTS.length} add-ons.`);

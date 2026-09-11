@@ -26,14 +26,6 @@ const FALLBACK_PROGRAM: Pick<ChallengeProgram, "id" | "name" | "slug" | "descrip
   mostPopular: true,
 };
 
-const WHATS_INCLUDED = [
-  "2 Evaluation Phases",
-  "Trading Dashboard",
-  "Risk Monitoring",
-  "Performance Analytics",
-  "Trader Academy",
-];
-
 const FAQS = [
   {
     q: "Which platform should I choose?",
@@ -83,10 +75,7 @@ export default async function BuyChallengePage({
     coupon?: string;
     program?: string;
     addon?: string | string[];
-    payment?: string;
     error?: string;
-    saved?: string;
-    shareUrl?: string;
   };
 }) {
   const session = await getServerSession(authOptions);
@@ -112,7 +101,6 @@ export default async function BuyChallengePage({
   const paymentMethods = await prisma.paymentMethod
     .findMany({ where: { enabled: true }, orderBy: { sortOrder: "asc" } })
     .catch(() => [] as PaymentMethod[]);
-  const selectedPayment = paymentMethods.some((m) => m.key === searchParams.payment) ? searchParams.payment! : paymentMethods[0]?.key ?? "";
 
   const selectedAddonIds = (Array.isArray(searchParams.addon) ? searchParams.addon : searchParams.addon ? [searchParams.addon] : []).filter(
     (id) => STATIC_ADDONS.some((a) => a.id === id)
@@ -162,7 +150,7 @@ export default async function BuyChallengePage({
   return (
     <>
       <Nav />
-      <main className="relative mx-auto max-w-6xl px-4 pb-32 pt-12 sm:px-6 sm:pb-16">
+      <main className="relative mx-auto max-w-[1440px] px-4 pb-32 pt-12 sm:px-6 sm:pb-16 lg:px-10">
         {/* Ambient background glow — pure CSS, purely decorative. */}
         <div
           aria-hidden
@@ -188,52 +176,44 @@ export default async function BuyChallengePage({
           {/* LEFT / CENTER — configuration */}
           <div className="space-y-8">
             <Section step={1} title="Choose your program">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {activePrograms.map((program) => (
-                  <label
-                    key={program.id || program.slug}
-                    className="relative cursor-pointer rounded-2xl border border-white/60 bg-white/70 p-5 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl transition has-[:checked]:border-[var(--brand-primary)] has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/30"
-                  >
-                    <input
-                      type="radio"
-                      name="program"
-                      form="configurator-form"
-                      value={program.id}
-                      defaultChecked={program.id === selectedProgram.id}
-                      className="peer sr-only"
-                    />
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-base font-semibold text-gray-900">{program.name}</h3>
-                          {program.mostPopular && (
-                            <span className="rounded-full bg-[var(--brand-accent)]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--brand-accent)]">
-                              Most Popular
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-1 text-sm text-gray-600">{program.description}</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {activePrograms.map((program) => {
+                  const steps =
+                    program.phaseCount === 0
+                      ? "Instant funding"
+                      : program.phaseCount === 1
+                      ? `${selected.phase1ProfitTargetPct}%`
+                      : `${selected.phase1ProfitTargetPct}% → ${selected.phase2ProfitTargetPct}%`;
+                  return (
+                    <label
+                      key={program.id || program.slug}
+                      className="relative flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/60 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-xl transition has-[:checked]:border-[var(--brand-primary)] has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/30"
+                    >
+                      <input
+                        type="radio"
+                        name="program"
+                        form="configurator-form"
+                        value={program.id}
+                        defaultChecked={program.id === selectedProgram.id}
+                        className="peer sr-only"
+                      />
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-gray-900">{program.name}</h3>
+                        {program.mostPopular && (
+                          <span className="rounded-full bg-[var(--brand-accent)]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--brand-accent)]">
+                            Most Popular
+                          </span>
+                        )}
                       </div>
-                      <div className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white peer-checked:flex">
-                        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                          <path d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.4 7.4a1 1 0 0 1-1.4 0L3.3 9.5a1 1 0 1 1 1.4-1.4l3.9 3.9 6.7-6.7a1 1 0 0 1 1.4 0Z" />
-                        </svg>
-                      </div>
-                    </div>
-                    <dl className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
-                      <MiniStat label="Phases" value={program.phaseCount === 0 ? "0 (Instant)" : program.phaseCount.toString()} />
-                      <MiniStat label="Payout model" value={program.payoutModel} />
-                      <MiniStat label="Best for" value={program.bestFor || "—"} />
-                      <MiniStat label="Reset option" value="Available" />
-                    </dl>
-                  </label>
-                ))}
+                      <span className="text-sm font-semibold text-gray-700">{steps}</span>
+                    </label>
+                  );
+                })}
               </div>
-              <button
-                type="submit"
-                form="configurator-form"
-                className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
+              {/* Visually hidden, not removed: program selection
+                  auto-submits via ConfiguratorClient, but this stays as the
+                  real, keyboard/no-JS-reachable fallback. */}
+              <button type="submit" form="configurator-form" className="sr-only">
                 Apply program selection
               </button>
               <p className="mt-3 text-xs text-gray-400">
@@ -251,9 +231,6 @@ export default async function BuyChallengePage({
                     const isChecked = t.id === selected.id;
                     const isGold = t.accountSize === 200_000;
                     const isUnique = t.accountSize === 25_000 || t.accountSize === 50_000;
-                    const estCents = Math.round(
-                      t.accountSize * 100 * (Number(t.phase1ProfitTargetPct) / 100) * (Number(t.profitSplitTraderPct) / 100)
-                    );
                     return (
                       <label
                         key={t.id}
@@ -292,19 +269,6 @@ export default async function BuyChallengePage({
                           ✓ Selected
                         </span>
 
-                        <div className="mt-3 text-center text-xs text-gray-500">
-                          Estimated First Payout{" "}
-                          <span className="font-semibold text-[var(--brand-accent)]">{formatCents(estCents)}</span>
-                        </div>
-
-                        <dl className="mt-5 space-y-3 border-t border-gray-200 pt-4 text-xs">
-                          <SizeCardRow label="Phase 1 Target" value={`${t.phase1ProfitTargetPct}%`} />
-                          <SizeCardRow label="Phase 2 Target" value={`${t.phase2ProfitTargetPct}%`} />
-                          <SizeCardRow label="Max Daily Loss" value={`${t.maxDailyLossPct}%`} />
-                          <SizeCardRow label="Max Total Loss" value={`${t.maxOverallLossPct}%`} />
-                          <SizeCardRow label="Min Trading Days" value={`${t.phase1MinTradingDays} days`} />
-                          <SizeCardRow label="Profit Split" value={`${t.profitSplitTraderPct}%`} accent />
-                        </dl>
                       </label>
                     );
                   })}
@@ -316,18 +280,14 @@ export default async function BuyChallengePage({
                     for any reason, this button is the one guaranteed way to
                     actually apply a new selection (full reload, same as
                     before). */}
-                <button
-                  type="submit"
-                  className="mt-5 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  data-role="apply-selection"
-                >
+                <button type="submit" className="sr-only" data-role="apply-selection">
                   Update
                 </button>
               </form>
             </Section>
 
             <Section step={3} title="Choose your trading platform">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {executionPlatforms.map((p) => {
                   const avail = STATIC_PLATFORM_AVAILABILITY.find((a) => a.templateId === selected.id && a.platformId === p.id);
                   const allowed = avail?.allowed ?? true;
@@ -338,7 +298,7 @@ export default async function BuyChallengePage({
                       key={p.id}
                       data-platform-option={p.id}
                       data-allowed={allowed ? "1" : "0"}
-                      className={`relative flex flex-col rounded-2xl border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-xl transition hover:bg-white/80 has-[:checked]:border-[var(--brand-primary)] has-[:checked]:bg-white has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/30 ${
+                      className={`relative flex flex-col items-center gap-2 rounded-xl border border-white/60 bg-white/60 p-3 text-center shadow-sm backdrop-blur-xl transition hover:bg-white/80 has-[:checked]:border-[var(--brand-primary)] has-[:checked]:bg-white has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/30 ${
                         allowed ? "cursor-pointer" : "cursor-not-allowed opacity-50"
                       }`}
                     >
@@ -351,33 +311,19 @@ export default async function BuyChallengePage({
                         defaultChecked={isSelected}
                         className="peer sr-only"
                       />
-                      <div className="flex items-center gap-1.5">
-                        {p.badges.map((b) => (
-                          <span key={b} className="rounded-full bg-gray-900/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-600">
-                            {b}
-                          </span>
-                        ))}
-                      </div>
-                      <h3 className="mt-2 text-base font-semibold text-gray-900">{p.name}</h3>
-                      <p className="mt-1 text-xs text-gray-500">{p.tagline}</p>
-                      <ul className="mt-3 space-y-1 text-xs text-gray-600">
-                        {p.features.map((f) => (
-                          <li key={f} className="flex items-center gap-1.5">
-                            <span className="h-1 w-1 rounded-full bg-gray-400" /> {f}
-                          </li>
-                        ))}
-                      </ul>
-                      <div className="mt-4 flex items-center justify-between">
-                        <span className="text-xs text-gray-500">
-                          {!allowed ? (avail?.unavailableReason ?? "Not available") : fee > 0 ? `+${formatCents(fee)} fee` : "No extra fee"}
-                        </span>
-                        <span className="rounded-full border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 peer-checked:hidden">
-                          Select
-                        </span>
-                        <span className="hidden rounded-full bg-[var(--brand-primary)] px-3 py-1 text-xs font-semibold text-white peer-checked:inline-block">
-                          ✓ Selected
-                        </span>
-                      </div>
+                      <PlatformLogo slug={p.slug} />
+                      <h3 className="text-xs font-semibold text-gray-900">{p.name}</h3>
+                      {!allowed ? (
+                        <span className="text-[10px] text-gray-400">{avail?.unavailableReason ?? "Not available"}</span>
+                      ) : fee > 0 ? (
+                        <span className="text-[10px] text-gray-400">+{formatCents(fee)}</span>
+                      ) : null}
+                      <span className="mt-1 rounded-full border border-gray-300 px-2.5 py-0.5 text-[10px] font-semibold text-gray-700 peer-checked:hidden">
+                        Select
+                      </span>
+                      <span className="mt-1 hidden rounded-full bg-[var(--brand-primary)] px-2.5 py-0.5 text-[10px] font-semibold text-white peer-checked:inline-block">
+                        ✓ Selected
+                      </span>
                     </label>
                   );
                 })}
@@ -391,11 +337,7 @@ export default async function BuyChallengePage({
                 </div>
               )}
 
-              <button
-                type="submit"
-                form="configurator-form"
-                className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
+              <button type="submit" form="configurator-form" className="sr-only">
                 Apply platform selection
               </button>
 
@@ -416,6 +358,8 @@ export default async function BuyChallengePage({
                         name="addon"
                         form="configurator-form"
                         value={addon.id}
+                        data-addon-name={addon.name}
+                        data-addon-price-cents={addon.priceCents}
                         defaultChecked={selectedAddonIds.includes(addon.id)}
                         className="mt-0.5 h-4 w-4 rounded border-gray-300"
                       />
@@ -435,66 +379,6 @@ export default async function BuyChallengePage({
                   add-ons included. */}
             </Section>
 
-            {paymentMethods.length > 0 && (
-              <Section step={5} title="Payment method">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {paymentMethods.map((m) => (
-                    <label
-                      key={m.id}
-                      className="cursor-pointer rounded-2xl border border-white/60 bg-white/60 p-3 text-center text-sm font-medium text-gray-700 shadow-sm backdrop-blur-xl transition hover:bg-white/80 has-[:checked]:border-[var(--brand-primary)] has-[:checked]:bg-white has-[:checked]:text-gray-900 has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/30"
-                    >
-                      <input
-                        type="radio"
-                        name="payment"
-                        form="configurator-form"
-                        value={m.key}
-                        defaultChecked={m.key === selectedPayment}
-                        className="peer sr-only"
-                      />
-                      {m.label}
-                    </label>
-                  ))}
-                </div>
-                <button
-                  type="submit"
-                  form="configurator-form"
-                  className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Apply payment method
-                </button>
-              </Section>
-            )}
-
-            <Section step={6} title="Coupon code">
-              <form method="GET" action="/pricing" className="flex flex-col gap-3 sm:flex-row">
-                <input type="hidden" name="template" value={selected.id} />
-                {platformId && <input type="hidden" name="platform" value={platformId} />}
-                {selectedProgram.id && <input type="hidden" name="program" value={selectedProgram.id} />}
-                {selectedAddonIds.map((id) => (
-                  <input key={id} type="hidden" name="addon" value={id} />
-                ))}
-                {selectedPayment && <input type="hidden" name="payment" value={selectedPayment} />}
-                <input
-                  name="coupon"
-                  defaultValue={couponCode}
-                  placeholder="Enter a coupon code (optional)"
-                  className="flex-1 rounded-xl border border-white/60 bg-white/70 px-3 py-2.5 text-sm text-gray-900 shadow-sm outline-none backdrop-blur-xl focus:border-[var(--brand-primary)]"
-                />
-                <button
-                  type="submit"
-                  className="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Apply
-                </button>
-              </form>
-              {couponCode && couponError && <p className="mt-2 text-xs text-red-600">{couponError}</p>}
-              {couponCode && !couponError && (
-                <p className="mt-2 text-xs text-green-700">
-                  Coupon applied — {formatCents(discountCents)} off.
-                </p>
-              )}
-            </Section>
-
             <TrustSection />
             <FaqSection />
           </div>
@@ -508,7 +392,7 @@ export default async function BuyChallengePage({
             program={selectedProgram}
             addons={selectedAddons}
             addonTotalCents={addonTotalCents}
-            paymentMethod={selectedPayment}
+            paymentMethods={paymentMethods}
             discountCents={discountCents}
             couponCode={couponCode}
             couponError={couponError}
@@ -537,23 +421,7 @@ function Section({ step, title, children }: { step: number; title: string; child
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-[10px] uppercase tracking-wide text-gray-400">{label}</dt>
-      <dd className="mt-0.5 font-semibold text-gray-800">{value}</dd>
-    </div>
-  );
-}
 
-function SizeCardRow({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <dt className="text-gray-500">{label}</dt>
-      <dd className={`font-semibold ${accent ? "text-[var(--brand-accent)]" : "text-gray-900"}`}>{value}</dd>
-    </div>
-  );
-}
 
 function ComparePlatforms({ platforms }: { platforms: typeof STATIC_PLATFORMS }) {
   const rows: { key: keyof (typeof platforms)[number]["compare"]; label: string }[] = [
@@ -647,7 +515,7 @@ function OrderSummary({
   program,
   addons,
   addonTotalCents,
-  paymentMethod,
+  paymentMethods,
   discountCents,
   couponCode,
   couponError,
@@ -661,7 +529,7 @@ function OrderSummary({
   program: ChallengeProgram;
   addons: (typeof STATIC_ADDONS)[number][];
   addonTotalCents: number;
-  paymentMethod: string;
+  paymentMethods: PaymentMethod[];
   discountCents: number;
   couponCode: string;
   couponError: string | null;
@@ -671,13 +539,11 @@ function OrderSummary({
   const platform = platforms.find((p) => p.id === platformId);
   const hasValidCoupon = Boolean(couponCode) && !couponError;
   const discountLabel = hasValidCoupon ? "Discount (coupon)" : "Discount (repeat account)";
-  // Illustrative only — see the disclaimer below. Based on hitting the
-  // Phase 2 profit target on the chosen account size at an 80% split.
-  const estimatedPayoutCents = Math.round(selected.accountSize * 100 * (Number(selected.phase2ProfitTargetPct) / 100) * 0.8);
 
   return (
     <aside
       data-role="order-summary"
+      data-base-total-cents={totalCents - addonTotalCents}
       className="lg:sticky lg:top-24 fixed inset-x-0 bottom-0 z-30 rounded-t-3xl border-t border-white/60 bg-white/90 p-5 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur-2xl lg:static lg:rounded-3xl lg:border lg:border-white/60 lg:p-6 lg:shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_30px_rgba(15,23,42,0.06)]"
     >
       <h3 className="text-lg font-semibold tracking-tight text-gray-900">Your Challenge</h3>
@@ -691,7 +557,6 @@ function OrderSummary({
           value={addons.length > 0 ? addons.map((a) => a.name).join(", ") : "None"}
           field="summary-addons"
         />
-        {paymentMethod && <SummaryRow label="Payment" value={paymentMethod.replace("_", " ")} field="summary-payment" />}
       </div>
 
       <div className="mt-4 space-y-2 border-t border-gray-200 pt-4 text-sm">
@@ -699,7 +564,9 @@ function OrderSummary({
         {platformFeeCents > 0 && (
           <SummaryRow label="Platform fee" value={formatCents(platformFeeCents)} field="summary-platform-fee" />
         )}
-        {addonTotalCents > 0 && <SummaryRow label="Add-ons" value={formatCents(addonTotalCents)} field="summary-addon-total" />}
+        <div data-role="summary-addon-total-row" hidden={addonTotalCents === 0}>
+          <SummaryRow label="Add-ons" value={formatCents(addonTotalCents)} field="summary-addon-total" />
+        </div>
         {discountCents > 0 && (
           <SummaryRow label={discountLabel} value={`-${formatCents(discountCents)}`} field="summary-discount" negative />
         )}
@@ -712,36 +579,45 @@ function OrderSummary({
         </span>
       </div>
 
-      <div className="mt-4 rounded-xl bg-gray-50 p-3">
-        <div className="text-xs uppercase tracking-wide text-gray-400">Estimated First Payout</div>
-        <div className="mt-1 text-xl font-bold text-gray-900" data-field="summary-est-payout">
-          {formatCents(estimatedPayoutCents)}
-        </div>
-        <p className="mt-1 text-[11px] leading-snug text-gray-500">
-          Example only, based on this account size, an 80% profit split, and reaching the Phase 2 profit target.
-          Not a guarantee of profit or payout — actual results depend entirely on your trading.
+      {/* Small, folded into the summary rather than its own step. Submits
+          on its own (a plain GET, page reload — a coupon changes server-
+          computed pricing, so it can't be a client-only preview) but stays
+          visually part of "Your Challenge" instead of a numbered section. */}
+      <form method="GET" action="/pricing" className="mt-4 flex gap-2 border-t border-gray-200 pt-4">
+        <input type="hidden" name="template" value={selected.id} />
+        {platformId && <input type="hidden" name="platform" value={platformId} />}
+        {program.id && <input type="hidden" name="program" value={program.id} />}
+        {addons.map((a) => (
+          <input key={a.id} type="hidden" name="addon" value={a.id} />
+        ))}
+        <input
+          name="coupon"
+          defaultValue={couponCode}
+          placeholder="Coupon code"
+          className="flex-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-900 outline-none focus:border-[var(--brand-primary)]"
+        />
+        <button type="submit" className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+          Apply
+        </button>
+      </form>
+      {couponCode && couponError && <p className="mt-1 text-xs text-red-600">{couponError}</p>}
+      {couponCode && !couponError && <p className="mt-1 text-xs text-green-700">Coupon applied — {formatCents(discountCents)} off.</p>}
+
+      {paymentMethods.length > 0 && (
+        <p className="mt-4 text-[11px] text-gray-400">
+          Accepted at checkout: {paymentMethods.map((m) => m.label).join(", ")}.
         </p>
-      </div>
+      )}
 
-      <div className="mt-4 border-t border-gray-200 pt-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">What&apos;s included</div>
-        <ul className="mt-2 space-y-1.5 text-sm text-gray-700">
-          {WHATS_INCLUDED.map((item) => (
-            <li key={item} className="flex items-center gap-2">
-              <span className="text-[var(--brand-primary)]">✓</span> {item}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <form action="/api/checkout" method="POST" className="mt-4 space-y-3 border-t border-gray-200 pt-4">
+      <form id="checkout-form" action="/api/checkout" method="POST" className="mt-4 space-y-3 border-t border-gray-200 pt-4">
         <input type="hidden" name="templateId" value={selected.id} />
         {platformId && <input type="hidden" name="platformId" value={platformId} />}
         {program.id && <input type="hidden" name="programId" value={program.id} />}
-        {addons.map((a) => (
-          <input key={a.id} type="hidden" name="addonIds" value={a.id} />
-        ))}
-        {paymentMethod && <input type="hidden" name="paymentMethod" value={paymentMethod} />}
+        <span data-role="addon-hidden-fields">
+          {addons.map((a) => (
+            <input key={a.id} type="hidden" name="addonIds" value={a.id} />
+          ))}
+        </span>
         {hasValidCoupon && <input type="hidden" name="couponCode" value={couponCode} />}
 
         <label className="flex items-start gap-2 rounded-md p-1 text-xs text-gray-700">
@@ -774,6 +650,29 @@ function OrderSummary({
         )}
       </form>
     </aside>
+  );
+}
+
+const PLATFORM_LOGO_STYLE: Record<string, { initials: string; bg: string }> = {
+  mt4: { initials: "MT4", bg: "#1d3557" },
+  mt5: { initials: "MT5", bg: "#1d3557" },
+  ctrader: { initials: "cT", bg: "#2a9d8f" },
+  "match-trader": { initials: "MX", bg: "#b48c46" },
+  tradingview: { initials: "TV", bg: "#131722" },
+};
+
+// No brand logo image assets in this project — a plain colored monogram
+// badge stands in for one, so a platform doesn't need any external asset.
+function PlatformLogo({ slug }: { slug: string }) {
+  const style = PLATFORM_LOGO_STYLE[slug] ?? { initials: slug.slice(0, 2).toUpperCase(), bg: "#1d3557" };
+  return (
+    <div
+      aria-hidden
+      className="flex h-9 w-9 items-center justify-center rounded-lg text-[10px] font-bold text-white"
+      style={{ backgroundColor: style.bg }}
+    >
+      {style.initials}
+    </div>
   );
 }
 
