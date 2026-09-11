@@ -417,13 +417,11 @@ export default async function BuyChallengePage({
                   </label>
                 ))}
               </div>
-              <button
-                type="submit"
-                form="configurator-form"
-                className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Apply add-ons
-              </button>
+              {/* No submit button here on purpose: ConfiguratorClient
+                  auto-submits the configurator form the instant an add-on
+                  checkbox changes. The "Update" button in step 2 is still
+                  the guaranteed no-JS fallback — it submits this same form,
+                  add-ons included. */}
             </Section>
 
             {paymentMethods.length > 0 && (
@@ -484,23 +482,6 @@ export default async function BuyChallengePage({
                   Coupon applied — {formatCents(discountCents)} off.
                 </p>
               )}
-            </Section>
-
-            <Section step={7} title="Save or share this configuration">
-              <SaveShareForm
-                templateId={selected.id}
-                platformId={platformId}
-                programId={selectedProgram.id}
-                addonIds={selectedAddonIds}
-                loggedIn={Boolean(session?.user)}
-                shareUrl={searchParams.shareUrl}
-                saved={Boolean(searchParams.saved)}
-              />
-              <p className="mt-3 text-xs text-gray-400">
-                <a href="/pricing/compare" className="underline hover:text-gray-600">
-                  Compare up to 3 account sizes side by side →
-                </a>
-              </p>
             </Section>
 
             <TrustSection />
@@ -840,77 +821,5 @@ function FaqSection() {
         ))}
       </div>
     </section>
-  );
-}
-
-function SaveShareForm({
-  templateId,
-  platformId,
-  programId,
-  addonIds,
-  loggedIn,
-  shareUrl,
-  saved,
-}: {
-  templateId: string;
-  platformId: string;
-  programId: string;
-  addonIds: string[];
-  loggedIn: boolean;
-  shareUrl?: string;
-  saved: boolean;
-}) {
-  const hiddenFields = (
-    <>
-      <input type="hidden" name="templateId" value={templateId} />
-      {platformId && <input type="hidden" name="platformId" value={platformId} />}
-      {programId && <input type="hidden" name="programId" value={programId} />}
-      {addonIds.map((id) => (
-        <input key={id} type="hidden" name="addonIds" value={id} />
-      ))}
-    </>
-  );
-
-  return (
-    <div className="rounded-2xl border border-white/60 bg-white/60 p-5 shadow-sm backdrop-blur-xl">
-      {saved && <p className="mb-3 text-sm text-green-700">Saved to your dashboard as one of your challenges.</p>}
-      {shareUrl && (
-        <p className="mb-3 break-all text-sm text-gray-700">
-          Share link: <span className="font-mono text-xs text-[var(--brand-primary)]">{shareUrl}</span>
-        </p>
-      )}
-      <div className="flex flex-col gap-3 sm:flex-row">
-        {loggedIn ? (
-          <form action="/api/configurations" method="POST" className="flex flex-1 gap-2">
-            {hiddenFields}
-            <input type="hidden" name="action" value="save" />
-            <input
-              name="name"
-              placeholder="Name this configuration"
-              required
-              className="flex-1 rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-sm text-gray-900 outline-none focus:border-[var(--brand-primary)]"
-            />
-            <button type="submit" className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-              Save
-            </button>
-          </form>
-        ) : (
-          <a
-            href="/login?next=/pricing"
-            className="flex-1 rounded-xl border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Log in to save this configuration
-          </a>
-        )}
-        <form action="/api/configurations" method="POST">
-          {hiddenFields}
-          <input type="hidden" name="action" value="share" />
-          <input type="hidden" name="name" value="Shared configuration" />
-          <button type="submit" className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-            Share
-          </button>
-        </form>
-      </div>
-    </div>
   );
 }
