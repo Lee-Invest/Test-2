@@ -6,20 +6,9 @@ export interface StaticPlatform {
   features: string[];
   badges: string[];
   // Whether trades can actually be placed on this platform, or it's
-  // analysis-only (e.g. TradingView without a broker execution integration
-  // configured). Never assume a charting platform supports execution.
+  // analysis-only. Never assume a charting platform supports execution
+  // unless a real broker bridge is actually configured for it.
   mode: "EXECUTION" | "ANALYSIS_ONLY";
-  compare: {
-    web: boolean;
-    desktop: boolean;
-    mobile: boolean;
-    eas: boolean;
-    algoTrading: boolean;
-    advancedCharts: boolean;
-    oneClickTrading: boolean;
-    marketExecution: boolean;
-    customIndicators: boolean;
-  };
 }
 
 // Static display data mirroring the seeded TradingPlatform rows (see
@@ -39,17 +28,6 @@ export const STATIC_PLATFORMS: StaticPlatform[] = [
     features: ["Expert Advisors", "Custom Indicators", "Desktop + Mobile"],
     badges: ["POPULAR"],
     mode: "EXECUTION",
-    compare: {
-      web: false,
-      desktop: true,
-      mobile: true,
-      eas: true,
-      algoTrading: true,
-      advancedCharts: false,
-      oneClickTrading: true,
-      marketExecution: true,
-      customIndicators: true,
-    },
   },
   {
     id: "platform-mt5",
@@ -59,17 +37,6 @@ export const STATIC_PLATFORMS: StaticPlatform[] = [
     features: ["Advanced Charting", "Expert Advisors", "Desktop + Mobile + Web"],
     badges: ["BEST FOR EAS"],
     mode: "EXECUTION",
-    compare: {
-      web: true,
-      desktop: true,
-      mobile: true,
-      eas: true,
-      algoTrading: true,
-      advancedCharts: true,
-      oneClickTrading: true,
-      marketExecution: true,
-      customIndicators: true,
-    },
   },
   {
     id: "platform-ctrader",
@@ -79,17 +46,6 @@ export const STATIC_PLATFORMS: StaticPlatform[] = [
     features: ["Level II Pricing", "cAlgo Automation", "Desktop + Mobile + Web"],
     badges: ["WEB"],
     mode: "EXECUTION",
-    compare: {
-      web: true,
-      desktop: true,
-      mobile: true,
-      eas: false,
-      algoTrading: true,
-      advancedCharts: true,
-      oneClickTrading: true,
-      marketExecution: true,
-      customIndicators: true,
-    },
   },
   {
     id: "platform-match-trader",
@@ -99,40 +55,24 @@ export const STATIC_PLATFORMS: StaticPlatform[] = [
     features: ["No Download Required", "Social Trading Feed", "Mobile"],
     badges: ["WEB", "MOBILE"],
     mode: "EXECUTION",
-    compare: {
-      web: true,
-      desktop: false,
-      mobile: true,
-      eas: false,
-      algoTrading: false,
-      advancedCharts: true,
-      oneClickTrading: true,
-      marketExecution: true,
-      customIndicators: false,
-    },
+  },
+  {
+    id: "platform-dxtrader",
+    name: "DXtrade",
+    slug: "dxtrade",
+    tagline: "Modern multi-asset execution with a fast, customizable web terminal.",
+    features: ["Advanced Order Types", "Customizable Layout", "Desktop + Mobile + Web"],
+    badges: ["WEB"],
+    mode: "EXECUTION",
   },
   {
     id: "platform-tradingview",
     name: "TradingView",
     slug: "tradingview",
-    tagline: "Best-in-class charting for analysis alongside your execution platform.",
+    tagline: "Best-in-class charting, connected directly to your account.",
     features: ["Advanced Charting", "Community Scripts", "Web + Mobile"],
-    badges: ["WEB", "MOBILE", "ANALYSIS ONLY"],
-    // No broker execution bridge is configured for this environment — shown
-    // for chart analysis only, never selectable as the account's execution
-    // platform. Configure a real bridge before ever changing this.
-    mode: "ANALYSIS_ONLY",
-    compare: {
-      web: true,
-      desktop: false,
-      mobile: true,
-      eas: false,
-      algoTrading: false,
-      advancedCharts: true,
-      oneClickTrading: false,
-      marketExecution: false,
-      customIndicators: true,
-    },
+    badges: ["WEB", "MOBILE"],
+    mode: "EXECUTION",
   },
 ];
 

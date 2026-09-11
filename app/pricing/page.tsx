@@ -120,6 +120,12 @@ export default async function BuyChallengePage({
   // be used to manipulate the final price actually charged.
   let discountCents = 0;
   let couponError: string | null = null;
+  // Describes *how* the discount was derived, not just its current cents
+  // value, so ConfiguratorClient can recompute it correctly if the trader
+  // then changes account size (a percent-based discount scales with the
+  // new price; a fixed one doesn't) without a page reload.
+  let discountMode: "none" | "percent" | "fixed" = "none";
+  let discountValue = 0;
   if (couponCode) {
     const coupon = await prisma.coupon.findUnique({ where: { code: couponCode.toUpperCase() } });
     const calc = applyCoupon(
@@ -137,6 +143,8 @@ export default async function BuyChallengePage({
     );
     if (calc.couponValid) {
       discountCents = calc.discountCents;
+      discountMode = coupon!.type === "PERCENT" ? "percent" : "fixed";
+      discountValue = coupon!.type === "PERCENT" ? Number(coupon!.value) : Math.round(Number(coupon!.value));
     } else {
       couponError = coupon ? calc.reason ?? "Coupon not valid." : "Coupon not found.";
     }
@@ -144,6 +152,8 @@ export default async function BuyChallengePage({
   const couponApplied = Boolean(couponCode) && !couponError;
   if (!couponApplied && multiAccountDiscount) {
     discountCents = Math.round((selected.priceCents * multiAccountDiscount.pct) / 100);
+    discountMode = "percent";
+    discountValue = multiAccountDiscount.pct;
   }
   const totalCents = selected.priceCents - discountCents + platformFeeCents + addonTotalCents;
 
@@ -194,6 +204,7 @@ export default async function BuyChallengePage({
                         name="program"
                         form="configurator-form"
                         value={program.id}
+                        data-phase-count={program.phaseCount}
                         defaultChecked={program.id === selectedProgram.id}
                         className="peer sr-only"
                       />
@@ -205,7 +216,9 @@ export default async function BuyChallengePage({
                           </span>
                         )}
                       </div>
-                      <span className="text-sm font-semibold text-gray-700">{steps}</span>
+                      <span className="text-sm font-semibold text-gray-700" data-field={`program-steps-${program.id}`}>
+                        {steps}
+                      </span>
                     </label>
                   );
                 })}
@@ -226,7 +239,7 @@ export default async function BuyChallengePage({
             <Section step={2} title="Choose your account size">
               <form method="GET" action="/pricing" id="configurator-form">
                 <input type="hidden" name="coupon" value={couponCode} />
-                <div data-role="size-selector" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div data-role="size-selector" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                   {templates.map((t) => {
                     const isChecked = t.id === selected.id;
                     const isGold = t.accountSize === 200_000;
@@ -235,40 +248,34 @@ export default async function BuyChallengePage({
                       <label
                         key={t.id}
                         data-size-option={t.id}
-                        className="relative flex cursor-pointer flex-col rounded-2xl border bg-white/70 p-5 pt-7 shadow-[0_8px_32px_rgba(31,38,135,0.06)] backdrop-blur-2xl transition hover:bg-white/90 has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/40"
+                        className="relative flex cursor-pointer flex-col items-center rounded-xl border bg-white/70 p-3 pt-5 text-center shadow-sm backdrop-blur-2xl transition hover:bg-white/90 has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/40"
                         style={{ borderColor: isGold ? "#b48c46" : "rgba(15,23,42,0.1)", borderWidth: isGold ? 2 : 1 }}
                       >
                         <input type="radio" name="template" value={t.id} defaultChecked={isChecked} className="peer sr-only" />
 
                         {isUnique && (
                           <div
-                            className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
+                            className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white"
                             style={{ backgroundColor: "#b48c46" }}
                           >
                             Unique
                           </div>
                         )}
 
-                        <div className="text-center">
-                          <div className="text-xs uppercase tracking-wide text-gray-500">Account Size</div>
-                          <div className="text-xl font-bold text-gray-900">${t.accountSize.toLocaleString()}</div>
+                        <div className="text-base font-bold text-gray-900">${t.accountSize.toLocaleString()}</div>
+                        <div className="mt-1 text-xs text-gray-500" data-field={`price-${t.id}`}>
+                          {formatCents(t.priceCents)}
                         </div>
 
-                        <div className="mt-4 text-center">
-                          <div className="text-2xl font-bold text-gray-900">{formatCents(t.priceCents)}</div>
-                          <div className="text-xs text-gray-500">One-Time Evaluation Fee</div>
-                        </div>
-
-                        <span className="mt-4 flex items-center justify-center gap-1.5 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 peer-checked:hidden">
+                        <span className="mt-2 rounded-full border border-gray-300 px-2.5 py-0.5 text-[10px] font-semibold text-gray-700 peer-checked:hidden">
                           Select
                         </span>
                         <span
-                          className="mt-4 hidden items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-white peer-checked:flex"
+                          className="mt-2 hidden rounded-full px-2.5 py-0.5 text-[10px] font-semibold text-white peer-checked:inline-block"
                           style={{ backgroundColor: "#1d3557" }}
                         >
                           ✓ Selected
                         </span>
-
                       </label>
                     );
                   })}
@@ -313,11 +320,9 @@ export default async function BuyChallengePage({
                       />
                       <PlatformLogo slug={p.slug} />
                       <h3 className="text-xs font-semibold text-gray-900">{p.name}</h3>
-                      {!allowed ? (
-                        <span className="text-[10px] text-gray-400">{avail?.unavailableReason ?? "Not available"}</span>
-                      ) : fee > 0 ? (
-                        <span className="text-[10px] text-gray-400">+{formatCents(fee)}</span>
-                      ) : null}
+                      <span className="text-[10px] text-gray-400" data-field={`platform-note-${p.id}`}>
+                        {!allowed ? avail?.unavailableReason ?? "Not available" : fee > 0 ? `+${formatCents(fee)}` : ""}
+                      </span>
                       <span className="mt-1 rounded-full border border-gray-300 px-2.5 py-0.5 text-[10px] font-semibold text-gray-700 peer-checked:hidden">
                         Select
                       </span>
@@ -340,37 +345,37 @@ export default async function BuyChallengePage({
               <button type="submit" form="configurator-form" className="sr-only">
                 Apply platform selection
               </button>
-
-              <ComparePlatforms platforms={STATIC_PLATFORMS} />
             </Section>
 
             <Section step={4} title="Add-ons">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {STATIC_ADDONS.map((addon) => (
-                  <label
-                    key={addon.id}
-                    className="cursor-pointer rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-xl transition hover:bg-white/80 has-[:checked]:border-[var(--brand-primary)] has-[:checked]:bg-white has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/30"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-gray-900">{addon.name}</h3>
-                      <input
-                        type="checkbox"
-                        name="addon"
-                        form="configurator-form"
-                        value={addon.id}
-                        data-addon-name={addon.name}
-                        data-addon-price-cents={addon.priceCents}
-                        defaultChecked={selectedAddonIds.includes(addon.id)}
-                        className="mt-0.5 h-4 w-4 rounded border-gray-300"
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">{addon.description}</p>
-                    <p className="mt-2 text-sm font-semibold text-gray-900">
-                      {formatCents(addon.priceCents)}
-                      {addon.billing === "MONTHLY" && <span className="font-normal text-gray-400">/mo</span>}
-                    </p>
-                  </label>
-                ))}
+                {STATIC_ADDONS.map((addon) => {
+                  const pct = selected.priceCents > 0 ? Math.round((addon.priceCents / selected.priceCents) * 100) : 0;
+                  return (
+                    <label
+                      key={addon.id}
+                      className="cursor-pointer rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm backdrop-blur-xl transition hover:bg-white/80 has-[:checked]:border-[var(--brand-primary)] has-[:checked]:bg-white has-[:checked]:ring-2 has-[:checked]:ring-[var(--brand-primary)]/30"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-sm font-semibold text-gray-900">{addon.name}</h3>
+                        <input
+                          type="checkbox"
+                          name="addon"
+                          form="configurator-form"
+                          value={addon.id}
+                          data-addon-name={addon.name}
+                          data-addon-price-cents={addon.priceCents}
+                          defaultChecked={selectedAddonIds.includes(addon.id)}
+                          className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                        />
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">{addon.description}</p>
+                      <p className="mt-2 text-sm font-semibold text-gray-900" data-field={`addon-pct-${addon.id}`}>
+                        +{pct}%{addon.billing === "MONTHLY" && <span className="font-normal text-gray-400">/mo</span>}
+                      </p>
+                    </label>
+                  );
+                })}
               </div>
               {/* No submit button here on purpose: ConfiguratorClient
                   auto-submits the configurator form the instant an add-on
@@ -394,6 +399,8 @@ export default async function BuyChallengePage({
             addonTotalCents={addonTotalCents}
             paymentMethods={paymentMethods}
             discountCents={discountCents}
+            discountMode={discountMode}
+            discountValue={discountValue}
             couponCode={couponCode}
             couponError={couponError}
             totalCents={totalCents}
@@ -423,90 +430,6 @@ function Section({ step, title, children }: { step: number; title: string; child
 
 
 
-function ComparePlatforms({ platforms }: { platforms: typeof STATIC_PLATFORMS }) {
-  const rows: { key: keyof (typeof platforms)[number]["compare"]; label: string }[] = [
-    { key: "web", label: "Web" },
-    { key: "desktop", label: "Desktop" },
-    { key: "mobile", label: "Mobile" },
-    { key: "eas", label: "Expert Advisors" },
-    { key: "algoTrading", label: "Algorithmic Trading" },
-    { key: "advancedCharts", label: "Advanced Charts" },
-    { key: "oneClickTrading", label: "One-click Trading" },
-    { key: "marketExecution", label: "Market Execution" },
-    { key: "customIndicators", label: "Custom Indicators" },
-  ];
-
-  return (
-    <div className="mt-4">
-      {/* Native <button popovertarget>/<div popover> — a browser-built modal
-          with open/close handled entirely by the browser, zero JS. Falls
-          back to a plain anchor jump on browsers that don't support the
-          Popover API yet (progressive enhancement, not a hard requirement). */}
-      <a
-        href="#platform-comparison"
-        // @ts-expect-error -- popovertarget is a valid HTML attribute not yet in React's JSX typings
-        popovertarget="platform-comparison"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--brand-primary)] hover:underline"
-      >
-        Compare platforms
-        <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-          <path d="M7.3 14.7a1 1 0 0 1 0-1.4L11.6 9 7.3 4.7a1 1 0 1 1 1.4-1.4l5 5a1 1 0 0 1 0 1.4l-5 5a1 1 0 0 1-1.4 0Z" />
-        </svg>
-      </a>
-
-      <div
-        id="platform-comparison"
-        popover="auto"
-        className="m-auto w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl backdrop:bg-gray-900/40"
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Compare platforms</h3>
-          <a
-            href="#"
-            // @ts-expect-error -- popovertarget
-            popovertarget="platform-comparison"
-            popovertargetaction="hide"
-            className="text-sm text-gray-400 hover:text-gray-700"
-            aria-label="Close"
-          >
-            ✕
-          </a>
-        </div>
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[480px] text-left text-sm">
-            <thead>
-              <tr className="text-gray-400">
-                <th className="py-2 pr-4 font-medium">Feature</th>
-                {platforms.map((p) => (
-                  <th key={p.id} className="py-2 px-2 text-center font-medium">
-                    {p.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.key} className="border-t border-gray-100">
-                  <td className="py-2 pr-4 text-gray-700">{row.label}</td>
-                  {platforms.map((p) => (
-                    <td key={p.id} className="py-2 px-2 text-center">
-                      {p.compare[row.key] ? (
-                        <span className="text-[var(--brand-primary)]">●</span>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function OrderSummary({
   selected,
   platformId,
@@ -517,6 +440,8 @@ function OrderSummary({
   addonTotalCents,
   paymentMethods,
   discountCents,
+  discountMode,
+  discountValue,
   couponCode,
   couponError,
   totalCents,
@@ -531,6 +456,8 @@ function OrderSummary({
   addonTotalCents: number;
   paymentMethods: PaymentMethod[];
   discountCents: number;
+  discountMode: "none" | "percent" | "fixed";
+  discountValue: number;
   couponCode: string;
   couponError: string | null;
   totalCents: number;
@@ -543,7 +470,9 @@ function OrderSummary({
   return (
     <aside
       data-role="order-summary"
-      data-base-total-cents={totalCents - addonTotalCents}
+      data-discount-mode={discountMode}
+      data-discount-value={discountValue}
+      data-discount-label={discountLabel}
       className="lg:sticky lg:top-24 fixed inset-x-0 bottom-0 z-30 rounded-t-3xl border-t border-white/60 bg-white/90 p-5 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur-2xl lg:static lg:rounded-3xl lg:border lg:border-white/60 lg:p-6 lg:shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_30px_rgba(15,23,42,0.06)]"
     >
       <h3 className="text-lg font-semibold tracking-tight text-gray-900">Your Challenge</h3>
@@ -561,15 +490,15 @@ function OrderSummary({
 
       <div className="mt-4 space-y-2 border-t border-gray-200 pt-4 text-sm">
         <SummaryRow label="Subtotal" value={formatCents(selected.priceCents)} field="summary-subtotal" />
-        {platformFeeCents > 0 && (
+        <div data-role="summary-platform-fee-row" hidden={platformFeeCents === 0}>
           <SummaryRow label="Platform fee" value={formatCents(platformFeeCents)} field="summary-platform-fee" />
-        )}
+        </div>
         <div data-role="summary-addon-total-row" hidden={addonTotalCents === 0}>
           <SummaryRow label="Add-ons" value={formatCents(addonTotalCents)} field="summary-addon-total" />
         </div>
-        {discountCents > 0 && (
+        <div data-role="summary-discount-row" hidden={discountCents === 0}>
           <SummaryRow label={discountLabel} value={`-${formatCents(discountCents)}`} field="summary-discount" negative />
-        )}
+        </div>
       </div>
 
       <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
@@ -610,9 +539,9 @@ function OrderSummary({
       )}
 
       <form id="checkout-form" action="/api/checkout" method="POST" className="mt-4 space-y-3 border-t border-gray-200 pt-4">
-        <input type="hidden" name="templateId" value={selected.id} />
-        {platformId && <input type="hidden" name="platformId" value={platformId} />}
-        {program.id && <input type="hidden" name="programId" value={program.id} />}
+        <input type="hidden" id="checkout-templateId" name="templateId" value={selected.id} />
+        <input type="hidden" id="checkout-platformId" name="platformId" value={platformId} />
+        <input type="hidden" id="checkout-programId" name="programId" value={program.id} />
         <span data-role="addon-hidden-fields">
           {addons.map((a) => (
             <input key={a.id} type="hidden" name="addonIds" value={a.id} />

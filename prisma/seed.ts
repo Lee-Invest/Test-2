@@ -55,6 +55,24 @@ const PLATFORM_DEFAULTS = [
     badges: ["WEB", "MOBILE"],
     sortOrder: 4,
   },
+  {
+    id: "platform-dxtrader",
+    slug: "dxtrade",
+    name: "DXtrade",
+    tagline: "Modern multi-asset execution with a fast, customizable web terminal.",
+    features: ["Advanced Order Types", "Customizable Layout", "Desktop + Mobile + Web"],
+    badges: ["WEB"],
+    sortOrder: 5,
+  },
+  {
+    id: "platform-tradingview",
+    slug: "tradingview",
+    name: "TradingView",
+    tagline: "Best-in-class charting, connected directly to your account.",
+    features: ["Advanced Charting", "Community Scripts", "Web + Mobile"],
+    badges: ["WEB", "MOBILE"],
+    sortOrder: 6,
+  },
 ];
 
 const ADDON_DEFAULTS = [
